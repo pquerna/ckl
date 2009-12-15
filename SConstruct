@@ -69,6 +69,7 @@ conf.env.AppendUnique(CPPPATH = [pjoin(cprefix[1], "include")])
 # TOOD: this is less than optimal, since curl-config polutes this quite badly :(
 d = conf.env.ParseFlags(clibs[1])
 conf.env.MergeFlags(d)
+conf.env.AppendUnique(CPPFLAGS = ["-Wall"])
 env = conf.Finish()
 
 Export("env")
