@@ -18,8 +18,12 @@ EnsureSConsVersion(1, 1, 0)
 
 import os
 import re
+from os.path import join as pjoin
+from site_scons import ac
 
 opts = Variables('build.py')
+
+opts.Add(PathVariable('CURL', 'Path to curl-config', WhereIs('curl-config')))
 
 env = Environment(options=opts,
                   ENV = os.environ.copy())
@@ -39,7 +43,7 @@ def read_version(prefix, path):
 env['version_major'], env['version_minor'], env['version_patch'] = read_version('CKL', 'src/ckl_version.h')
 env['version_string'] = "%d.%d.%d"  % (env['version_major'], env['version_minor'], env['version_patch'])
 
-conf = Configure(env)
+conf = Configure(env, custom_tests = {'CheckCurlPrefix': ac.CheckCurlPrefix, 'CheckCurlLibs': ac.CheckCurlLibs})
 
 cc = conf.env.WhereIs('/Developer/usr/bin/clang')
 if os.environ.has_key('CC'):
@@ -48,9 +52,23 @@ if os.environ.has_key('CC'):
 if cc:
   conf.env['CC'] = cc
 
+
 if not conf.CheckFunc('floor'):
   conf.env.AppendUnique(LIBS=['m'])
 
+cprefix = conf.CheckCurlPrefix()
+if not cprefix[0]:
+  Exit("Error: Unable to detect curl prefix")
+
+clibs = conf.CheckCurlLibs()
+if not clibs[0]:
+  Exit("Error: Unable to detect curl libs")
+
+conf.env.AppendUnique(CPPPATH = [pjoin(cprefix[1], "include")])
+
+# TOOD: this is less than optimal, since curl-config polutes this quite badly :(
+d = conf.env.ParseFlags(clibs[1])
+conf.env.MergeFlags(d)
 env = conf.Finish()
 
 Export("env")
