@@ -86,20 +86,41 @@ static int read_config(ckl_conf_t *conf)
 
 static int build_msg(ckl_msg_t *msg)
 {
-  const char *user = getenv("SUDO_USER");
-  if (user == NULL) {
-    user = getlogin();
+  {
+    const char *user = getenv("SUDO_USER");
+    if (user == NULL) {
+      user = getlogin();
+    }
+
+    if (user == NULL) {
+      error_out("Unknown user: getlogin(2) and SUDO_USER both returned NULL.");
+    }
+
+    msg->username = strdup(user);
   }
 
-  if (user == NULL) {
-    error_out("Unknown user: getlogin(2) and SUDO_USER both returned NULL.");
+  {
+#ifndef HOST_NAME_MAX
+#define HOST_NAME_MAX 255
+#endif
+    char buf[HOST_NAME_MAX+1];
+    buf[HOST_NAME_MAX] = '\0';
+    int rv;
+
+    rv = gethostname(&buf[0], HOST_NAME_MAX);
+    if (rv < 0) {
+      error_out("gethostname returned -1.  Is your hostname set?");
+    }
+
+    msg->hostname = strdup(buf);
   }
 
-  msg->username = strdup(user);
+  return 0;
 }
 
 int main(int argc, const char *argv[])
 {
+  int rv;
   ckl_msg_t msg;
   ckl_conf_t conf;
   ckl_transport_t transport;
@@ -107,7 +128,6 @@ int main(int argc, const char *argv[])
   curl_global_init(CURL_GLOBAL_ALL);
 
   build_msg(&msg);
-  error_out(msg.username);
   
   return 0;
 }
