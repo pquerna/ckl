@@ -25,6 +25,9 @@
 #include <curl/types.h>
 #include <curl/easy.h>
 
+#ifndef HOST_NAME_MAX
+#define HOST_NAME_MAX 255
+#endif
 
 typedef struct ckl_transport_t {
   CURL *curl;
@@ -51,7 +54,9 @@ static void error_out(const char *msg)
   exit(EXIT_FAILURE);
 }
 
-static int msg_to_post_data(ckl_transport_t *t, ckl_conf_t *conf, ckl_msg_t* m)
+static int msg_to_post_data(ckl_transport_t *t,
+                            ckl_conf_t *conf,
+                            ckl_msg_t* m)
 {
   curl_formadd(&t->formpost,
                &t->lastptr,
@@ -84,10 +89,43 @@ static int read_config(ckl_conf_t *conf)
   conf->secret = strdup("super-secret");
 }
 
+/* Tries to find the first available editor to create a log message.
+ * Attemps to use one of the following variables:
+ *  - CKL_EDITOR
+ *  - VISUAL
+ *  - EDITOR
+ *
+ * returns 0 on succes, <0 if failed */
+static int find_editor(const char **output)
+{
+  const char *c;
+
+  c = getenv("CKL_EDITOR");
+  if (c) {
+    *output = c;
+    return 0;
+  }
+
+  c = getenv("VISUAL");
+  if (c) {
+    *output = c;
+    return 0;
+  }
+
+  c = getenv("EDITOR");
+  if (c) {
+    *output = c;
+    return 0;
+  }
+
+  return -1;
+}
+
 static int build_msg(ckl_msg_t *msg)
 {
   {
     const char *user = getenv("SUDO_USER");
+
     if (user == NULL) {
       user = getlogin();
     }
@@ -100,9 +138,6 @@ static int build_msg(ckl_msg_t *msg)
   }
 
   {
-#ifndef HOST_NAME_MAX
-#define HOST_NAME_MAX 255
-#endif
     char buf[HOST_NAME_MAX+1];
     buf[HOST_NAME_MAX] = '\0';
     int rv;
@@ -118,16 +153,45 @@ static int build_msg(ckl_msg_t *msg)
   return 0;
 }
 
-int main(int argc, const char *argv[])
+static void show_help()
 {
+  fprintf(stdout, "ckl - %d.%d.%d\n", CKL_VERSION_MAJOR, CKL_VERSION_MINOR, CKL_VERSION_PATCH);
+  fprintf(stdout, "ckl logs a message about an operation on a server to an HTTP endpoint\n");
+  fprintf(stdout, "  Usage:  ckl [-h] [-m message]\n\n");
+  fprintf(stdout, "See `man ckl` for more details\n");
+  exit(EXIT_SUCCESS);
+}
+
+int main(int argc, char *const *argv)
+{
+  int c;
   int rv;
+  const char *editor;
   ckl_msg_t msg;
   ckl_conf_t conf;
   ckl_transport_t transport;
 
   curl_global_init(CURL_GLOBAL_ALL);
 
-  build_msg(&msg);
-  
+  while ((c = getopt (argc, argv, "hm:")) != -1) {
+    switch (c) {
+      case 'h':
+        show_help();
+        break;
+      case '?':
+        break;
+    }
+  }
+
+  rv = find_editor(&editor);
+  if (rv < 0) {
+    error_out("unable to find text editor. Set EDITOR or use -m");
+  }
+
+  rv = build_msg(&msg);
+  if (rv < 0) {
+    error_out("build_msg failed.");
+  }
+
   return 0;
 }
