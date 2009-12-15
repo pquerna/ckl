@@ -17,10 +17,17 @@
 
 #include "ckl_version.h"
 
+#include <string.h>
 #include <curl/curl.h>
 #include <curl/types.h>
 #include <curl/easy.h>
 
+
+typedef struct ckl_transport_t {
+  CURL *curl;
+  struct curl_httppost *formpost;
+  struct curl_httppost *lastptr;
+} ckl_transport_t;
 
 typedef struct ckl_conf_t {
   const char *endpoint;
@@ -35,37 +42,53 @@ typedef struct ckl_msg_t {
 } ckl_msg_t;
 
 
-static int msg_to_post_data(CURL *curl, ckl_conf_t *conf, ckl_msg_t* m)
+static int msg_to_post_data(ckl_transport_t *t, ckl_conf_t *conf, ckl_msg_t* m)
 {
-  struct curl_httppost *formpost = NULL;
-  struct curl_httppost *lastptr = NULL;
-
-  curl_formadd(&formpost,
-               &lastptr,
+  curl_formadd(&t->formpost,
+               &t->lastptr,
                CURLFORM_COPYNAME, "username",
                CURLFORM_COPYCONTENTS, m->username,
                CURLFORM_END);
 
-  curl_formadd(&formpost,
-               &lastptr,
+  curl_formadd(&t->formpost,
+               &t->lastptr,
                CURLFORM_COPYNAME, "hostname",
                CURLFORM_COPYCONTENTS, m->hostname,
                CURLFORM_END);
 
-  curl_formadd(&formpost,
-               &lastptr,
+  curl_formadd(&t->formpost,
+               &t->lastptr,
                CURLFORM_COPYNAME, "msg",
                CURLFORM_COPYCONTENTS, m->msg,
                CURLFORM_END);
 
-  curl_easy_setopt(curl, CURLOPT_HTTPPOST, formpost);
+  curl_easy_setopt(t->curl, CURLOPT_HTTPPOST, t->formpost);
  
   return 0;
 }
 
+
+static int read_config(ckl_conf_t *conf)
+{
+  /* TODO: parse /etc/ckl.conf, ~/.ckl */
+  conf->endpoint = strdup("http://127.0.0.1/ckl");
+  conf->secret = strdup("super-secret");
+}
+
+static int build_msg(ckl_msg_t *msg)
+{
+  
+}
+
 int main(int argc, const char *argv[])
 {
+  ckl_msg_t msg;
+  ckl_conf_t conf;
+  ckl_transport_t *transport;
+
   curl_global_init(CURL_GLOBAL_ALL);
 
+
+  
   return 0;
 }
