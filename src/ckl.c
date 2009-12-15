@@ -18,6 +18,9 @@
 #include "ckl_version.h"
 
 #include <string.h>
+#include <unistd.h>
+#include <stdlib.h>
+
 #include <curl/curl.h>
 #include <curl/types.h>
 #include <curl/easy.h>
@@ -41,6 +44,12 @@ typedef struct ckl_msg_t {
   const char *msg;
 } ckl_msg_t;
 
+
+static void error_out(const char *msg)
+{
+  fprintf(stderr, "ERROR: %s\n", msg);
+  exit(EXIT_FAILURE);
+}
 
 static int msg_to_post_data(ckl_transport_t *t, ckl_conf_t *conf, ckl_msg_t* m)
 {
@@ -77,18 +86,28 @@ static int read_config(ckl_conf_t *conf)
 
 static int build_msg(ckl_msg_t *msg)
 {
-  
+  const char *user = getenv("SUDO_USER");
+  if (user == NULL) {
+    user = getlogin();
+  }
+
+  if (user == NULL) {
+    error_out("Unknown user: getlogin(2) and SUDO_USER both returned NULL.");
+  }
+
+  msg->username = strdup(user);
 }
 
 int main(int argc, const char *argv[])
 {
   ckl_msg_t msg;
   ckl_conf_t conf;
-  ckl_transport_t *transport;
+  ckl_transport_t transport;
 
   curl_global_init(CURL_GLOBAL_ALL);
 
-
+  build_msg(&msg);
+  error_out(msg.username);
   
   return 0;
 }
