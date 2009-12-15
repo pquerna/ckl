@@ -1,0 +1,19 @@
+   Cloudkick Changelog Tool
+------------------------------
+
+A command line tool for noting when something was changed on a machine.  The
+contents of the message are POST'ed to another server for logging.
+
+Example Usage:
+ $ ckl -m 'I reconfigured postfix'
+
+Will post to your configured endpoint the following data:
+  - API Key
+  - Log Message
+  - Machine Hostname
+  - Username
+  - Timestamp
+
+Endpoints are just HTTP or HTTPS servers configured with an application
+to store this data.  The API key is just a secret string that it is up to the
+endpoint to validate.
