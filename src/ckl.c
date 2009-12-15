@@ -167,28 +167,38 @@ int main(int argc, char *const *argv)
   int c;
   int rv;
   const char *editor;
+  const char *usermsg = NULL;
   ckl_msg_t msg;
   ckl_conf_t conf;
   ckl_transport_t transport;
 
   curl_global_init(CURL_GLOBAL_ALL);
 
-  while ((c = getopt (argc, argv, "hm:")) != -1) {
+  while ((c = getopt(argc, argv, "hm:")) != -1) {
     switch (c) {
       case 'h':
         show_help();
+        break;
+      case 'm':
+        usermsg = optarg;
         break;
       case '?':
         break;
     }
   }
 
-  rv = find_editor(&editor);
-  if (rv < 0) {
-    error_out("unable to find text editor. Set EDITOR or use -m");
+  if (usermsg == NULL) {
+    rv = find_editor(&editor);
+    if (rv < 0) {
+      error_out("unable to find text editor. Set EDITOR or use -m");
+    }
   }
 
-  rv = build_msg(&msg);
+  if (usermsg == NULL) {
+    error_out("no message specified");
+  }
+
+  rv = build_msg(&msg, usermsg);
   if (rv < 0) {
     error_out("build_msg failed.");
   }
