@@ -61,6 +61,10 @@ static int msg_to_post_data(ckl_transport_t *t,
                             ckl_conf_t *conf,
                             ckl_msg_t* m)
 {
+  char buf[128];
+
+  snprintf(buf, sizeof(buf), "%d", m->ts);
+
   curl_formadd(&t->formpost,
                &t->lastptr,
                CURLFORM_COPYNAME, "username",
@@ -77,6 +81,18 @@ static int msg_to_post_data(ckl_transport_t *t,
                &t->lastptr,
                CURLFORM_COPYNAME, "msg",
                CURLFORM_COPYCONTENTS, m->msg,
+               CURLFORM_END);
+
+  curl_formadd(&t->formpost,
+               &t->lastptr,
+               CURLFORM_COPYNAME, "secret",
+               CURLFORM_COPYCONTENTS, conf->secret,
+               CURLFORM_END);
+
+  curl_formadd(&t->formpost,
+               &t->lastptr,
+               CURLFORM_COPYNAME, "ts",
+               CURLFORM_COPYCONTENTS, buf,
                CURLFORM_END);
 
   curl_easy_setopt(t->curl, CURLOPT_HTTPPOST, t->formpost);
