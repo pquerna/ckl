@@ -27,10 +27,33 @@ MODE='cgi'
 
 #### END USER MODIFICATIONS
 
+import sys
+import cgi
 import flup
 import sqlite3
 import traceback
+import time
 
+def get_conn():
+  _SQL_CREATE = ["""
+    CREATE TABLE IF NOT EXISTS
+      events (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        timestamp NUMERIC NOT NULL,
+        hostname VARCHAR(256) NOT NULL,
+        remote_ip VARCHAR(256) NOT NULL,
+        username VARCHAR(256) NOT NULL,
+        message TEXT NOT NULL);
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS
+      ix_events_hostname ON events (hostname);
+    """]
+  conn = sqlite3.connect(DATABASE_PATH)
+  for q in _SQL_CREATE:
+    conn.execute(q);
+  conn.commit();
+  return conn
 
 def process_post(environ, start_response):
   form = cgi.FieldStorage(fp=environ['wsgi.input'],
@@ -41,15 +64,33 @@ def process_post(environ, start_response):
     start_response("403 Forbidden", [("content-type","text/plain")])
     return ["Invalid Secret"]
 
+  ts = form.getfirst("ts", 0)
+  hostname = form.getfirst("hostname", "")
+  remote_ip = environ['REMOTE_ADDR']
+  username = form.getfirst("username", "")
+  msg =  form.getfirst("msg", "")
+  c = get_conn()
+  c.execute("""
+      INSERT INTO events VALUES (NULL, ?, ?, ?, ?, ?)
+                  """,
+                  [ts, hostname, remote_ip, username, msg])
+  c.commit()
   start_response("200 OK", [("content-type","text/plain")])
-  return [""]
+  return ["saved\n"]
 
 def mainapp(environ, start_response):
   meth = environ['REQUEST_METHOD']
   if meth == "POST":
     return process_post(environ, start_response)
+  c = get_conn().cursor()
+  c.execute("SELECT timestamp,hostname,username,message FROM events ORDER BY id DESC LIMIT 500")
   start_response("200 OK", [("content-type","text/plain")])
-  return ["hi"]
+  output = ["server changelog: \n"]
+  for row in c:
+    (timestamp,hostname,username,message) = row
+    t = time.gmtime(timestamp)
+    output.append("%s by %s on %s\n  %s\n" % (time.strftime("%Y-%m-%d %H:%M:%S UTC", t), username, hostname, message))
+  return output
 
 def main(environ, start_response):
   try:
