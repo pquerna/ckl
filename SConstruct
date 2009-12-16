@@ -70,6 +70,8 @@ conf.env.AppendUnique(CPPPATH = [pjoin(cprefix[1], "include")])
 d = conf.env.ParseFlags(clibs[1])
 conf.env.MergeFlags(d)
 conf.env.AppendUnique(CPPFLAGS = ["-Wall"])
+# this is needed on solaris because of its dumb library path issues
+conf.env.AppendUnique(RPATH = conf.env.get('LIBPATH'))
 env = conf.Finish()
 
 Export("env")
