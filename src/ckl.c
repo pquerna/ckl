@@ -105,6 +105,7 @@ static int msg_send(ckl_transport_t *t,
                     ckl_conf_t *conf,
                     ckl_msg_t* m)
 {
+  long httprc = -1;
   CURLcode res;
   int rv = msg_to_post_data(t, conf, m);
 
@@ -112,22 +113,23 @@ static int msg_send(ckl_transport_t *t,
     return rv;
   }
 
-  if (!conf->quiet) {
-    fprintf(stdout, "Sending.... ");
-    fflush(stdout);
-  }
-
   res = curl_easy_perform(t->curl);
 
   if (res != 0) {
-    fprintf(stderr, "Error pushing to %s: (%d) %s\n\n",
+    fprintf(stderr, "Failed talking to endpoint %s: (%d) %s\n\n",
             conf->endpoint, res, curl_easy_strerror(res));
     return -1;
   }
 
-  if (!conf->quiet) {
-    fprintf(stdout, " Done!\n");
-    fflush(stdout);
+  curl_easy_getinfo(t->curl, CURLINFO_RESPONSE_CODE, &httprc);
+
+  if (httprc >299 || httprc <= 199) {
+    fprintf(stderr, "Endpoint %s returned HTTP %d\n",
+            conf->endpoint, httprc);
+    if (httprc == 403) {
+      fprintf(stderr, "Are you sure your secret is correct?\n");
+    }
+    return -1;
   }
 
   return 0;
@@ -303,7 +305,11 @@ static int transport_init(ckl_transport_t *t, ckl_conf_t *conf)
 
   curl_easy_setopt(t->curl, CURLOPT_URL, conf->endpoint);
   curl_easy_setopt(t->curl, CURLOPT_USERAGENT, uabuf);
-  
+
+#ifdef CKL_DEBUG
+  curl_easy_setopt(t->curl, CURLOPT_VERBOSE, 1);
+#endif
+
   /* TODO: this is less than optimal */
   curl_easy_setopt(t->curl, CURLOPT_SSL_VERIFYPEER, 0L);
   curl_easy_setopt(t->curl, CURLOPT_SSL_VERIFYHOST, 0L);
