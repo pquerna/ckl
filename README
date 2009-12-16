@@ -4,7 +4,17 @@
 A command line tool for noting when something was changed on a machine.  The
 contents of the message are POST'ed to another server for logging.
 
-Example Usage:
+=== Configuration ==
+There are only two configuration variables.  The address of an endpoint, 
+and the secret key to authenticate the client. Both HTTPS and HTTP are 
+supported, althgouh the SSL certificate is not yet validated.
+
+== Example Config Flie ==
+Put the following in /etc/ckl.conf:
+  endpoint http://ckl.example.com/
+  secret mySuperSecret
+
+== Example Usage ==
  $ ckl -m 'I reconfigured postfix'
 
 Will post to your configured endpoint the following data:
