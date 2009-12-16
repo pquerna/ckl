@@ -247,7 +247,7 @@ static void conf_free(ckl_conf_t *conf)
   free(conf);
 }
 
-static int msg_init(ckl_msg_t *msg, const char *usermsg)
+static int msg_init(ckl_msg_t *msg)
 {
   {
     const char *user = getenv("SUDO_USER");
@@ -276,8 +276,6 @@ static int msg_init(ckl_msg_t *msg, const char *usermsg)
 
     msg->hostname = strdup(buf);
   }
-
-  msg->msg = strdup(usermsg);
 
   msg->ts = time(NULL);
 
@@ -326,6 +324,82 @@ static void transport_free(ckl_transport_t *t)
   curl_formfree(t->formpost);
   curl_slist_free_all(t->headerlist);
   free(t);
+}
+
+static int editor_setup_file(char **path, FILE **fd)
+{
+  char buf[128];
+
+  strncpy(buf, "/tmp/ckl.XXXXXX", sizeof(buf));
+
+  int fx = mkstemp(buf);
+  if (fx < 0) {
+    perror("Failed to create tempfile");
+    return -1;
+  }
+
+  *fd = fdopen(fx, "r+");
+
+  *path = strdup(buf);
+
+  return 0;
+}
+
+static int editor_fill_file(ckl_conf_t *conf, ckl_msg_t *m, FILE *fd)
+{
+  fprintf(fd, "\n");
+  fprintf(fd, "# changelog entry:\n");
+  fprintf(fd, "#    host:   %s\n", m->hostname);
+  fprintf(fd, "#    user:   %s\n", m->username);
+  fprintf(fd, "#    endp:   %s\n", conf->endpoint);
+  fprintf(fd, "# (lines starting with # are ignored)");
+  fflush(fd);
+  return 0;
+}
+
+static int editor_edit(const char* editor, const char *path)
+{
+  char buf[2048];
+  /* TODO: proper quoting */
+  snprintf(buf, sizeof(buf), "%s '%s'", editor, path);
+
+  system(buf);
+
+  return 0;
+}
+
+static int editor_read_file(ckl_msg_t *m, const char *path)
+{
+  FILE *fp = fopen(path, "r");
+
+  char *out = strdup("");
+
+  if (!fp) {
+    error_out("Unable to read editted file?");
+    return -1;
+  }
+
+  char buf[8096];
+  char *p = NULL;
+
+  while ((p = fgets(buf, sizeof(buf), fp)) != NULL) {
+    /* comment lines */
+    if (p[0] == '#') {
+      continue;
+    }
+
+    nuke_newlines(p);
+
+    char *t = malloc(strlen(out) + strlen(p) + 1);
+    strncpy(t, out, strlen(out));
+    strncpy(t+strlen(out), p, strlen(p));
+    free(out);
+    out = t;
+  }
+
+  m->msg = out;
+
+  return 0;
 }
 
 /* Tries to find the first available editor to create a log message.
@@ -406,26 +480,56 @@ int main(int argc, char *const *argv)
     }
   }
 
-  if (usermsg == NULL) {
-    rv = editor_find(&editor);
-    if (rv < 0) {
-      error_out("unable to find text editor. Set EDITOR or use -m");
-    }
-  }
-
-  if (usermsg == NULL) {
-    error_out("no message specified");
-  }
-
   rv = conf_init(conf);
   if (rv < 0) {
     error_out("conf_init failed");
   }
 
-  rv = msg_init(msg, usermsg);
+  rv = msg_init(msg);
   if (rv < 0) {
     error_out("msg_init failed.");
   }
+
+  if (usermsg == NULL) {
+    rv = editor_find(&editor);
+    if (rv < 0) {
+      error_out("unable to find text editor. Set EDITOR or use -m");
+    }
+    char *path;
+    FILE *fd;
+
+    rv = editor_setup_file(&path, &fd);
+    if (rv < 0) {
+      error_out("Failed to setup tempfile for editting.");
+    }
+    
+    rv = editor_fill_file(conf, msg, fd);
+    if (rv < 0) {
+      error_out("Failed to prefile file");
+    }
+
+    rv = editor_edit(editor, path);
+    if (rv < 0) {
+      error_out("");
+    }
+
+    rv = editor_read_file(msg, path);
+    if (rv < 0) {
+      error_out("Failed to read editted file");
+    }
+
+    fclose(fd);
+    //unlink(path);
+  }
+  else {
+    msg->msg = strdup(usermsg);
+  }
+
+
+  if (msg->msg == NULL) {
+    error_out("no message specified");
+  }
+
 
   rv = transport_init(transport, conf);
   if (rv < 0) {
