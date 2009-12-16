@@ -359,12 +359,20 @@ static int editor_fill_file(ckl_conf_t *conf, ckl_msg_t *m, FILE *fd)
 
 static int editor_edit(const char* editor, const char *path)
 {
+  int rv;
   char buf[2048];
   /* TODO: proper quoting */
   snprintf(buf, sizeof(buf), "%s '%s'", editor, path);
 
-  system(buf);
-
+  rv = system(buf);
+  if (rv < 0) {
+    fprintf(stderr, "os.system failed for cmd '%s'\n", buf);
+    perror("system(): ");
+    return -1;
+  }
+  else if (rv != 0) {
+    fprintf(stderr, "os.system('%s') returned %d\n", buf, rv);
+  }
   return 0;
 }
 
@@ -510,7 +518,7 @@ int main(int argc, char *const *argv)
 
     rv = editor_edit(editor, path);
     if (rv < 0) {
-      error_out("");
+      error_out("editor broke?");
     }
 
     rv = editor_read_file(msg, path);
@@ -519,7 +527,7 @@ int main(int argc, char *const *argv)
     }
 
     fclose(fd);
-    //unlink(path);
+    unlink(path);
   }
   else {
     msg->msg = strdup(usermsg);
