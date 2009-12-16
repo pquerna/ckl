@@ -121,7 +121,7 @@ static int find_editor(const char **output)
   return -1;
 }
 
-static int build_msg(ckl_msg_t *msg)
+static int build_msg(ckl_msg_t *msg, const char *usermsg)
 {
   {
     const char *user = getenv("SUDO_USER");
@@ -150,14 +150,26 @@ static int build_msg(ckl_msg_t *msg)
     msg->hostname = strdup(buf);
   }
 
+  msg->msg = strdup(usermsg);
+
+  msg->ts = time(NULL);
+
   return 0;
+}
+
+static void show_version()
+{
+  fprintf(stdout, "ckl - %d.%d.%d\n", CKL_VERSION_MAJOR, CKL_VERSION_MINOR, CKL_VERSION_PATCH);
+  exit(EXIT_SUCCESS);
 }
 
 static void show_help()
 {
-  fprintf(stdout, "ckl - %d.%d.%d\n", CKL_VERSION_MAJOR, CKL_VERSION_MINOR, CKL_VERSION_PATCH);
-  fprintf(stdout, "ckl logs a message about an operation on a server to an HTTP endpoint\n");
-  fprintf(stdout, "  Usage:  ckl [-h] [-m message]\n\n");
+  fprintf(stdout, "ckl - Configuration Changelog tool\n");
+  fprintf(stdout, "  Usage:  ckl [-h] [-V] [-m message]\n\n");
+  fprintf(stdout, "     -h          Show Help message\n");
+  fprintf(stdout, "     -V          Show Version number\n");
+  fprintf(stdout, "     -m (msg)    Set the log message, if none is set, an editor will be invoked.\n");
   fprintf(stdout, "See `man ckl` for more details\n");
   exit(EXIT_SUCCESS);
 }
@@ -174,8 +186,11 @@ int main(int argc, char *const *argv)
 
   curl_global_init(CURL_GLOBAL_ALL);
 
-  while ((c = getopt(argc, argv, "hm:")) != -1) {
+  while ((c = getopt(argc, argv, "hVm:")) != -1) {
     switch (c) {
+      case 'V':
+        show_version();
+        break;
       case 'h':
         show_help();
         break;
@@ -183,6 +198,7 @@ int main(int argc, char *const *argv)
         usermsg = optarg;
         break;
       case '?':
+        error_out("See -h for correct options");
         break;
     }
   }
