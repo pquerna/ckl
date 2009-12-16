@@ -43,8 +43,8 @@ def process_post(environ, start_response):
 
   start_response("200 OK", [("content-type","text/plain")])
   return [""]
-def mainapp(environ, start_response):
 
+def mainapp(environ, start_response):
   meth = environ['REQUEST_METHOD']
   if meth == "POST":
     return process_post(environ, start_response)
