@@ -195,7 +195,7 @@ static int conf_init(ckl_conf_t *conf)
   FILE *fp;
 
   /* TODO: respect prefix */
-  fp = fopen("/etc/ck1.conf", "r");
+  fp = fopen("/etc/ckl.conf", "r");
   if (fp == NULL) {
     char buf[2048];
     const char *home = getenv("HOME");
