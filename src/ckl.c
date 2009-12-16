@@ -372,6 +372,7 @@ static int editor_edit(const char* editor, const char *path)
   }
   else if (rv != 0) {
     fprintf(stderr, "os.system('%s') returned %d\n", buf, rv);
+    return -1;
   }
   return 0;
 }
