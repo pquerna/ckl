@@ -37,6 +37,7 @@ typedef struct ckl_transport_t {
 } ckl_transport_t;
 
 typedef struct ckl_conf_t {
+  int quiet;
   const char *endpoint;
   const char *secret;
 } ckl_conf_t;
@@ -87,6 +88,31 @@ static int msg_send(ckl_transport_t *t,
                     ckl_conf_t *conf,
                     ckl_msg_t* m)
 {
+  CURLcode res;
+  int rv = msg_to_post_data(t, conf, m);
+
+  if (rv < 0) {
+    return rv;
+  }
+
+  if (!conf->quiet) {
+    fprintf(stdout, "Sending.... ");
+    fflush(stdout);
+  }
+
+  res = curl_easy_perform(t->curl);
+
+  if (res != 0) {
+    fprintf(stderr, "Error pushing to %s: (%d) %s\n\n",
+            conf->endpoint, res, curl_easy_strerror(res));
+    return -1;
+  }
+
+  if (!conf->quiet) {
+    fprintf(stdout, " Done!\n");
+    fflush(stdout);
+  }
+
   return 0;
 }
 
@@ -95,6 +121,7 @@ static int conf_init(ckl_conf_t *conf)
   /* TODO: parse /etc/ckl.conf, ~/.ckl */
   conf->endpoint = strdup("http://127.0.0.1/ckl");
   conf->secret = strdup("super-secret");
+  return 0;
 }
 
 static void conf_free(ckl_conf_t *conf)
@@ -262,6 +289,11 @@ int main(int argc, char *const *argv)
 
   if (usermsg == NULL) {
     error_out("no message specified");
+  }
+
+  rv = conf_init(conf);
+  if (rv < 0) {
+    error_out("conf_init failed");
   }
 
   rv = msg_init(msg, usermsg);
