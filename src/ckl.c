@@ -20,6 +20,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <ctype.h>
 
 #include <curl/curl.h>
 #include <curl/types.h>
@@ -116,11 +117,96 @@ static int msg_send(ckl_transport_t *t,
   return 0;
 }
 
+
+static void nuke_newlines(char *p)
+{
+  size_t i;
+  size_t l = strlen(p);
+  for (i = 0; i < l; i++) {
+    if (p[i] == '\n') {
+      p[i] = '\0';
+    }
+    if (p[i] == '\r') {
+      p[i] = '\0';
+    }
+  }
+}
+
+static int conf_parse(ckl_conf_t *conf, FILE *fp)
+{
+  char buf[8096];
+  char *p = NULL;
+  while ((p = fgets(buf, sizeof(buf), fp)) != NULL) {
+    /* comment lines */
+    if (p[0] == '#') {
+      continue;
+    }
+
+    while (isspace(p[0])) { p++;};
+
+    if (strncmp("endpoint", p, 8) == 0) {
+      p += 8;
+      while (isspace(p[0])) { p++;};
+      if (conf->endpoint) {
+        free((char*)conf->endpoint);
+      }
+      nuke_newlines(p);
+      conf->endpoint = strdup(p);
+      continue;
+    }
+
+    if (strncmp("secret", p, 6) == 0) {
+      p += 6;
+      while (isspace(p[0])) { p++;};
+      if (conf->secret) {
+        free((char*)conf->secret);
+      }
+      nuke_newlines(p);
+      conf->secret = strdup(p);
+      continue;
+    }
+  }
+
+  return 0;
+}
+
+
 static int conf_init(ckl_conf_t *conf)
 {
-  /* TODO: parse /etc/ckl.conf, ~/.ckl */
-  conf->endpoint = strdup("http://127.0.0.1/ckl");
-  conf->secret = strdup("super-secret");
+  int rv;
+  FILE *fp;
+
+  /* TODO: respect prefix */
+  fp = fopen("/etc/ck1.conf", "r");
+  if (fp == NULL) {
+    fp = fopen("/Users/chip/.ckl", "r");
+    if (fp == NULL) {
+      fprintf(stderr, "Unable to read configuration file.\n");
+      fprintf(stderr, "Please create '/etc/ckl.conf' or '~/.ckl' with the following:\n");
+      fprintf(stderr, "  endpoint https://example.com/ckl\n");
+      fprintf(stderr, "  secret ExampleSecret\n");
+      error_out("No configuration file available.");
+    }
+  }
+
+  rv = conf_parse(conf, fp);
+  if (rv < 0) {
+    error_out("parsing config file failed");
+    return rv;
+  }
+
+  fclose(fp);
+
+  if (!conf->endpoint) {
+    error_out("Configuration file is missing endpoint");
+    return -1;
+  }
+
+  if (!conf->secret) {
+    error_out("Configuration file is missing secret");
+    return -1;
+  }
+
   return 0;
 }
 
