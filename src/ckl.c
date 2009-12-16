@@ -277,11 +277,16 @@ static void msg_free(ckl_msg_t *m)
 
 static int transport_init(ckl_transport_t *t, ckl_conf_t *conf)
 {
+  char uabuf[255];
   static const char buf[] = "Expect:";
 
   t->curl = curl_easy_init();
 
+  snprintf(uabuf, sizeof(uabuf), "ckl/%d.%d.%d (Changelog Client)",
+           CKL_VERSION_MAJOR, CKL_VERSION_MINOR, CKL_VERSION_PATCH);
+
   curl_easy_setopt(t->curl, CURLOPT_URL, conf->endpoint);
+  curl_easy_setopt(t->curl, CURLOPT_USERAGENT, uabuf);
   
   /* TODO: this is less than optimal */
   curl_easy_setopt(t->curl, CURLOPT_SSL_VERIFYPEER, 0L);
