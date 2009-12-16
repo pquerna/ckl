@@ -32,7 +32,22 @@ import sqlite3
 import traceback
 
 
+def process_post(environ, start_response):
+  form = cgi.FieldStorage(fp=environ['wsgi.input'],
+                          environ=environ)
+
+  secret = form.getfirst("secret", "")
+  if secret != SECRET_KEY:
+    start_response("403 Forbidden", [("content-type","text/plain")])
+    return ["Invalid Secret"]
+
+  start_response("200 OK", [("content-type","text/plain")])
+  return [""]
 def mainapp(environ, start_response):
+
+  meth = environ['REQUEST_METHOD']
+  if meth == "POST":
+    return process_post(environ, start_response)
   start_response("200 OK", [("content-type","text/plain")])
   return ["hi"]
 
