@@ -399,7 +399,7 @@ static int editor_read_file(ckl_msg_t *m, const char *path)
 
     nuke_newlines(p);
 
-    char *t = malloc(strlen(out) + strlen(p) + 1);
+    char *t = calloc(1, strlen(out) + strlen(p) + 1);
     strncpy(t, out, strlen(out));
     strncpy(t+strlen(out), p, strlen(p));
     free(out);
