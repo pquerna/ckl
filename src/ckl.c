@@ -179,13 +179,25 @@ static int conf_init(ckl_conf_t *conf)
   /* TODO: respect prefix */
   fp = fopen("/etc/ck1.conf", "r");
   if (fp == NULL) {
-    fp = fopen("/Users/chip/.ckl", "r");
+    char buf[2048];
+    const char *home = getenv("HOME");
+
+    if (home == NULL) {
+      error_out("HOME is not set");
+      return -1;
+    }
+
+    snprintf(buf, sizeof(buf), "%s/.ckl", home);
+
+    fp = fopen(buf, "r");
+    
     if (fp == NULL) {
       fprintf(stderr, "Unable to read configuration file.\n");
       fprintf(stderr, "Please create '/etc/ckl.conf' or '~/.ckl' with the following:\n");
       fprintf(stderr, "  endpoint https://example.com/ckl\n");
       fprintf(stderr, "  secret ExampleSecret\n");
       error_out("No configuration file available.");
+      return -1;
     }
   }
 
@@ -197,12 +209,12 @@ static int conf_init(ckl_conf_t *conf)
 
   fclose(fp);
 
-  if (!conf->endpoint) {
+  if (!conf->endpoint || strlen(conf->endpoint) < 8 /* len(http://a) */) {
     error_out("Configuration file is missing endpoint");
     return -1;
   }
 
-  if (!conf->secret) {
+  if (!conf->secret || strlen(conf->secret) < 1) {
     error_out("Configuration file is missing secret");
     return -1;
   }
@@ -241,6 +253,7 @@ static int msg_init(ckl_msg_t *msg, const char *usermsg)
     rv = gethostname(&buf[0], HOST_NAME_MAX);
     if (rv < 0) {
       error_out("gethostname returned -1.  Is your hostname set?");
+      return -1;
     }
 
     msg->hostname = strdup(buf);
