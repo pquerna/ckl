@@ -31,6 +31,7 @@
 
 typedef struct ckl_transport_t {
   CURL *curl;
+  struct curl_slist *headerlist;
   struct curl_httppost *formpost;
   struct curl_httppost *lastptr;
 } ckl_transport_t;
@@ -82,46 +83,28 @@ static int msg_to_post_data(ckl_transport_t *t,
 }
 
 
-static int read_config(ckl_conf_t *conf)
+static int msg_send(ckl_transport_t *t,
+                    ckl_conf_t *conf,
+                    ckl_msg_t* m)
+{
+  return 0;
+}
+
+static int conf_init(ckl_conf_t *conf)
 {
   /* TODO: parse /etc/ckl.conf, ~/.ckl */
   conf->endpoint = strdup("http://127.0.0.1/ckl");
   conf->secret = strdup("super-secret");
 }
 
-/* Tries to find the first available editor to create a log message.
- * Attemps to use one of the following variables:
- *  - CKL_EDITOR
- *  - VISUAL
- *  - EDITOR
- *
- * returns 0 on succes, <0 if failed */
-static int find_editor(const char **output)
+static void conf_free(ckl_conf_t *conf)
 {
-  const char *c;
-
-  c = getenv("CKL_EDITOR");
-  if (c) {
-    *output = c;
-    return 0;
-  }
-
-  c = getenv("VISUAL");
-  if (c) {
-    *output = c;
-    return 0;
-  }
-
-  c = getenv("EDITOR");
-  if (c) {
-    *output = c;
-    return 0;
-  }
-
-  return -1;
+  free((char*)conf->endpoint);
+  free((char*)conf->secret);
+  free(conf);
 }
 
-static int build_msg(ckl_msg_t *msg, const char *usermsg)
+static int msg_init(ckl_msg_t *msg, const char *usermsg)
 {
   {
     const char *user = getenv("SUDO_USER");
@@ -157,6 +140,73 @@ static int build_msg(ckl_msg_t *msg, const char *usermsg)
   return 0;
 }
 
+static void msg_free(ckl_msg_t *m)
+{
+  free((char*)m->username);
+  free((char*)m->hostname);
+  free((char*)m->msg);
+  free(m);
+}
+
+
+static int transport_init(ckl_transport_t *t, ckl_conf_t *conf)
+{
+  static const char buf[] = "Expect:";
+
+  t->curl = curl_easy_init();
+
+  curl_easy_setopt(t->curl, CURLOPT_URL, conf->endpoint);
+  
+  /* TODO: this is less than optimal */
+  curl_easy_setopt(t->curl, CURLOPT_SSL_VERIFYPEER, 0L);
+  curl_easy_setopt(t->curl, CURLOPT_SSL_VERIFYHOST, 0L);
+
+  t->headerlist = curl_slist_append(t->headerlist, buf);
+  curl_easy_setopt(t->curl, CURLOPT_HTTPHEADER, t->headerlist);
+
+  return 0;
+}
+
+static void transport_free(ckl_transport_t *t)
+{
+  curl_easy_cleanup(t->curl);
+  curl_formfree(t->formpost);
+  curl_slist_free_all(t->headerlist);
+  free(t);
+}
+
+/* Tries to find the first available editor to create a log message.
+ * Attemps to use one of the following variables:
+ *  - CKL_EDITOR
+ *  - VISUAL
+ *  - EDITOR
+ *
+ * returns 0 on succes, <0 if failed */
+static int editor_find(const char **output)
+{
+  const char *c;
+
+  c = getenv("CKL_EDITOR");
+  if (c) {
+    *output = c;
+    return 0;
+  }
+
+  c = getenv("VISUAL");
+  if (c) {
+    *output = c;
+    return 0;
+  }
+
+  c = getenv("EDITOR");
+  if (c) {
+    *output = c;
+    return 0;
+  }
+  
+  return -1;
+}
+
 static void show_version()
 {
   fprintf(stdout, "ckl - %d.%d.%d\n", CKL_VERSION_MAJOR, CKL_VERSION_MINOR, CKL_VERSION_PATCH);
@@ -180,9 +230,9 @@ int main(int argc, char *const *argv)
   int rv;
   const char *editor;
   const char *usermsg = NULL;
-  ckl_msg_t msg;
-  ckl_conf_t conf;
-  ckl_transport_t transport;
+  ckl_msg_t *msg = calloc(1, sizeof(ckl_msg_t));
+  ckl_conf_t *conf = calloc(1, sizeof(ckl_conf_t));
+  ckl_transport_t *transport = calloc(1, sizeof(ckl_transport_t));
 
   curl_global_init(CURL_GLOBAL_ALL);
 
@@ -204,7 +254,7 @@ int main(int argc, char *const *argv)
   }
 
   if (usermsg == NULL) {
-    rv = find_editor(&editor);
+    rv = editor_find(&editor);
     if (rv < 0) {
       error_out("unable to find text editor. Set EDITOR or use -m");
     }
@@ -214,10 +264,25 @@ int main(int argc, char *const *argv)
     error_out("no message specified");
   }
 
-  rv = build_msg(&msg, usermsg);
+  rv = msg_init(msg, usermsg);
   if (rv < 0) {
-    error_out("build_msg failed.");
+    error_out("msg_init failed.");
   }
+
+  rv = transport_init(transport, conf);
+  if (rv < 0) {
+    error_out("transport_init failed.");
+  }
+
+  rv = msg_send(transport, conf, msg);
+  if (rv < 0) {
+    error_out("msg_send failed.");
+  }
+
+  transport_free(transport);
+  conf_free(conf);
+  msg_free(msg);
+  curl_global_cleanup();
 
   return 0;
 }
