@@ -27,3 +27,10 @@ Will post to your configured endpoint the following data:
 Endpoints are just HTTP or HTTPS servers configured with an application
 to store this data.  The API key is just a secret string that it is up to the
 endpoint to validate.
+
+== Endpoints ==
+A simple Python based endpoint is bundled in <webapp/ckl.cgi> which uses
+an SQLite database to store change log entries.
+
+The protocol is a simple HTTP form POST to the endpoint URL.  It should be
+trivial to port the endpoint to any langauge of your choice.
