@@ -19,6 +19,11 @@ lenv = env.Clone()
 
 sources = Split("""
   ckl.c
+  script.c
+  transport.c
+  conf.c
+  editor.c
+  msg.c
 """)
 
 ckl = lenv.Program("ckl", source=sources)
