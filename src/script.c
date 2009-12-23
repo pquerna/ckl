@@ -21,3 +21,14 @@ int ckl_script_init(ckl_script_t *s, ckl_conf_t *conf)
 {
   return 0;
 }
+
+int ckl_script_record(ckl_script_t *s, ckl_msg_t *msg)
+{
+  return 0;
+}
+
+void ckl_script_free(ckl_script_t *s)
+{
+  free(s);
+}
+

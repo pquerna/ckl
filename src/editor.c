@@ -17,25 +17,6 @@
 
 #include "ckl.h"
 
-int ckl_editor_setup_file(char **path, FILE **fd)
-{
-  char buf[128];
-  
-  strncpy(buf, "/tmp/ckl.XXXXXX", sizeof(buf));
-  
-  int fx = mkstemp(buf);
-  if (fx < 0) {
-    perror("Failed to create tempfile");
-    return -1;
-  }
-  
-  *fd = fdopen(fx, "r+");
-  
-  *path = strdup(buf);
-  
-  return 0;
-}
-
 int ckl_editor_fill_file(ckl_conf_t *conf, ckl_msg_t *m, FILE *fd)
 {
   fprintf(fd, "\n");

@@ -38,6 +38,25 @@ void ckl_nuke_newlines(char *p)
   }
 }
 
+int ckl_tmp_file(char **path, FILE **fd)
+{
+  char buf[128];
+
+  strncpy(buf, "/tmp/ckl.XXXXXX", sizeof(buf));
+
+  int fx = mkstemp(buf);
+  if (fx < 0) {
+    perror("Failed to create tempfile");
+    return -1;
+  }
+
+  *fd = fdopen(fx, "r+");
+
+  *path = strdup(buf);
+
+  return 0;
+}
+
 static void show_version()
 {
   fprintf(stdout, "ckl - %d.%d.%d\n", CKL_VERSION_MAJOR, CKL_VERSION_MINOR, CKL_VERSION_PATCH);
@@ -107,7 +126,7 @@ int main(int argc, char *const *argv)
     char *path;
     FILE *fd;
 
-    rv = ckl_editor_setup_file(&path, &fd);
+    rv = ckl_tmp_file(&path, &fd);
     if (rv < 0) {
       ckl_error_out("Failed to setup tempfile for editting.");
     }
@@ -141,10 +160,18 @@ int main(int argc, char *const *argv)
 
   if (script_mode) {
     ckl_script_t *script = calloc(1, sizeof(ckl_script_t));
+
     rv = ckl_script_init(script, conf);
     if (rv < 0) {
       ckl_error_out("script_init failed.");
     }
+    
+    rv = ckl_script_record(script, msg);
+    if (rv < 0) {
+      ckl_error_out("script_record failed.");
+    }
+
+    ckl_script_free(script);
   }
 
   rv = ckl_transport_init(transport, conf);

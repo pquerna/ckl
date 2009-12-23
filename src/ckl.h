@@ -58,6 +58,7 @@ typedef struct ckl_script_t {
 /* util functions */
 void ckl_error_out(const char *msg);
 void ckl_nuke_newlines(char *p);
+int ckl_tmp_file(char **path, FILE **fd);
 
 /* transport fucntions */
 int ckl_transport_init(ckl_transport_t *t, ckl_conf_t *conf);
@@ -68,6 +69,8 @@ int ckl_transport_msg_send(ckl_transport_t *t,
 
 /* script functions */
 int ckl_script_init(ckl_script_t *s, ckl_conf_t *conf);
+int ckl_script_record(ckl_script_t *s, ckl_msg_t *msg);
+void ckl_script_free(ckl_script_t *s);
 
 /* configuration functions */
 int ckl_conf_init(ckl_conf_t *conf);
