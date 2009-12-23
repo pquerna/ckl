@@ -14,6 +14,7 @@ docs/*.8
 docs/*.8.gz
 *.tar.bz2
 *.tar.gz
+*.asc
 *.deb
 packaging/debian.control
 packaging/debian.conffiles
