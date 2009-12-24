@@ -77,44 +77,13 @@ static void show_help()
   exit(EXIT_SUCCESS);
 }
 
-int main(int argc, char *const *argv)
+static int do_send_msg(ckl_conf_t *conf, const char *usermsg)
 {
-  int c;
   int rv;
-  int script_mode = 0;
   const char *editor;
-  const char *usermsg = NULL;
   ckl_msg_t *msg = calloc(1, sizeof(ckl_msg_t));
-  ckl_conf_t *conf = calloc(1, sizeof(ckl_conf_t));
   ckl_transport_t *transport = calloc(1, sizeof(ckl_transport_t));
   ckl_script_t *script = calloc(1, sizeof(ckl_script_t));
-
-  curl_global_init(CURL_GLOBAL_ALL);
-
-  while ((c = getopt(argc, argv, "hVsm:")) != -1) {
-    switch (c) {
-      case 'V':
-        show_version();
-        break;
-      case 'h':
-        show_help();
-        break;
-      case 'm':
-        usermsg = optarg;
-        break;
-      case 's':
-        script_mode = 1;
-        break;
-      case '?':
-        ckl_error_out("See -h for correct options");
-        break;
-    }
-  }
-
-  rv = ckl_conf_init(conf);
-  if (rv < 0) {
-    ckl_error_out("conf_init failed");
-  }
 
   rv = ckl_msg_init(msg);
   if (rv < 0) {
@@ -133,7 +102,7 @@ int main(int argc, char *const *argv)
     if (rv < 0) {
       ckl_error_out("Failed to setup tempfile for editting.");
     }
-    
+
     rv = ckl_editor_fill_file(conf, msg, fd);
     if (rv < 0) {
       ckl_error_out("Failed to prefile file");
@@ -156,17 +125,16 @@ int main(int argc, char *const *argv)
     msg->msg = strdup(usermsg);
   }
 
-
   if (msg->msg == NULL) {
     ckl_error_out("no message specified");
   }
 
-  if (script_mode) {
+  if (conf->script_mode) {
     rv = ckl_script_init(script, conf);
     if (rv < 0) {
       ckl_error_out("script_init failed.");
     }
-    
+
     rv = ckl_script_record(script, msg);
     if (rv < 0) {
       ckl_error_out("script_record failed.");
@@ -184,11 +152,73 @@ int main(int argc, char *const *argv)
   }
 
   ckl_transport_free(transport);
-  ckl_conf_free(conf);
   ckl_msg_free(msg);
   ckl_script_free(script);
 
+  return 0;
+}
+
+enum {
+  MODE_SEND_MSG,
+  MODE_LIST,
+  MODE_DETAIL
+};
+
+int main(int argc, char *const *argv)
+{
+  int mode = MODE_SEND_MSG;
+  int c;
+  int rv;
+  const char *usermsg = NULL;
+  ckl_conf_t *conf = calloc(1, sizeof(ckl_conf_t));
+
+  curl_global_init(CURL_GLOBAL_ALL);
+
+  while ((c = getopt(argc, argv, "hVslm:L:")) != -1) {
+    switch (c) {
+      case 'V':
+        show_version();
+        break;
+      case 'h':
+        show_help();
+        break;
+      case 'l':
+        mode = MODE_LIST;
+        break;
+      case 'L':
+        mode = MODE_DETAIL;
+        break;
+      case 'm':
+        usermsg = optarg;
+        break;
+      case 's':
+        conf->script_mode = 1;
+        break;
+      case '?':
+        ckl_error_out("See -h for correct options");
+        break;
+    }
+  }
+
+  rv = ckl_conf_init(conf);
+
+  if (rv < 0) {
+    ckl_error_out("conf_init failed");
+  }
+
+  switch (mode) {
+    case MODE_SEND_MSG:
+      rv = do_send_msg(conf, usermsg);
+      break;
+    case MODE_LIST:
+      break;
+    case MODE_DETAIL:
+      break;
+  }
+
+  ckl_conf_free(conf);
+
   curl_global_cleanup();
 
-  return 0;
+  return rv;
 }

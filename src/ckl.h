@@ -39,6 +39,7 @@ typedef struct ckl_transport_t {
 } ckl_transport_t;
 
 typedef struct ckl_conf_t {
+  int script_mode;
   int quiet;
   const char *endpoint;
   const char *secret;
