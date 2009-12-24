@@ -185,6 +185,7 @@ int ckl_script_record(ckl_script_t *s, ckl_msg_t *msg)
     }
   }
 
+  /* main process ! */
   {
     char buf[BUFSIZ];
     while (g_script_done == 0) {
