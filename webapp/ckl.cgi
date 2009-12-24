@@ -106,9 +106,9 @@ def mainapp(environ, start_response):
   for row in c:
     (timestamp,hostname,username,message,script) = row
     t = time.gmtime(timestamp)
-    output.append("<hr>%s by %s on <a href='?hostname=%s'>%s</a><br/><pre>  %s</pre>\n" % (time.strftime("%Y-%m-%d %H:%M:%S UTC", t), username, hostname, hostname, message))
+    output.append("<hr><code>%s by %s on <a href='?hostname=%s'>%s</a></code><br/><pre>  %s</pre>\n" % (time.strftime("%Y-%m-%d %H:%M:%S UTC", t), username, hostname, hostname, message))
     if script != None and len(script) > 1:
-      output.append("Logged session: <br/><textarea rows='15' cols='100'>%s</textarea>\n" % script)
+      output.append("<textarea rows='15' cols='100'>%s</textarea>\n" % script)
   return output
 
 def main(environ, start_response):
