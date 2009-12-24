@@ -17,12 +17,18 @@
 
 #include "ckl.h"
 
+/* TODO: detect headers in sconsript */
 #ifdef __linux__
 #include <pty.h>
 #include <sys/wait.h>
 #include <utmp.h>
 #else
+#ifdef __FreeBSD__
+#include <termios.h>
+#include <libutil.h>
+#else
 #include <util.h>
+#endif
 #endif
 
 #include <sys/ioctl.h>
