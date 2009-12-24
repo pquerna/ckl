@@ -50,7 +50,9 @@ int ckl_tmp_file(char **path, FILE **fd)
     return -1;
   }
 
-  *fd = fdopen(fx, "r+");
+  if (fd != NULL) {
+    *fd = fdopen(fx, "r+");
+  }
 
   *path = strdup(buf);
 

@@ -54,6 +54,7 @@ typedef struct ckl_msg_t {
 
 typedef struct ckl_script_t {
   const char *shell;
+  FILE *fd;
   char *path;
 } ckl_script_t;
 
