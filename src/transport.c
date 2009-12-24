@@ -55,6 +55,15 @@ static int msg_to_post_data(ckl_transport_t *t,
                CURLFORM_COPYNAME, "ts",
                CURLFORM_COPYCONTENTS, buf,
                CURLFORM_END);
+
+  if (m->script_log != NULL) {
+    curl_formadd(&t->formpost,
+                 &t->lastptr,
+                 CURLFORM_COPYNAME, "scriptlog",
+                 CURLFORM_FILE, m->script_log,
+                 CURLFORM_FILENAME, "script.log",
+                 CURLFORM_CONTENTTYPE, "text/plain", CURLFORM_END);
+  }
   
   curl_easy_setopt(t->curl, CURLOPT_HTTPPOST, t->formpost);
   

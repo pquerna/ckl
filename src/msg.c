@@ -57,6 +57,9 @@ void ckl_msg_free(ckl_msg_t *m)
   free((char*)m->username);
   free((char*)m->hostname);
   free((char*)m->msg);
+  if (m->script_log) {
+    free((char*)m->script_log);
+  }
   free(m);
 }
 

@@ -49,6 +49,7 @@ typedef struct ckl_msg_t {
   const char *username;
   const char *hostname;
   const char *msg;
+  const char *script_log;
 } ckl_msg_t;
 
 typedef struct ckl_script_t {

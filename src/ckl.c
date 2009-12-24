@@ -85,6 +85,7 @@ int main(int argc, char *const *argv)
   ckl_msg_t *msg = calloc(1, sizeof(ckl_msg_t));
   ckl_conf_t *conf = calloc(1, sizeof(ckl_conf_t));
   ckl_transport_t *transport = calloc(1, sizeof(ckl_transport_t));
+  ckl_script_t *script = calloc(1, sizeof(ckl_script_t));
 
   curl_global_init(CURL_GLOBAL_ALL);
 
@@ -159,8 +160,6 @@ int main(int argc, char *const *argv)
   }
 
   if (script_mode) {
-    ckl_script_t *script = calloc(1, sizeof(ckl_script_t));
-
     rv = ckl_script_init(script, conf);
     if (rv < 0) {
       ckl_error_out("script_init failed.");
@@ -170,8 +169,6 @@ int main(int argc, char *const *argv)
     if (rv < 0) {
       ckl_error_out("script_record failed.");
     }
-
-    ckl_script_free(script);
   }
 
   rv = ckl_transport_init(transport, conf);
@@ -187,6 +184,7 @@ int main(int argc, char *const *argv)
   ckl_transport_free(transport);
   ckl_conf_free(conf);
   ckl_msg_free(msg);
+  ckl_script_free(script);
 
   curl_global_cleanup();
 
