@@ -17,7 +17,14 @@
 
 #include "ckl.h"
 
+#ifdef __linux__
+#include <pty.h>
+#include <sys/wait.h>
+#include <utmp.h>
+#else
 #include <util.h>
+#endif
+
 #include <sys/ioctl.h>
 
 #ifndef BUFSIZ
