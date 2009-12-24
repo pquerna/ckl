@@ -117,7 +117,7 @@ def process_detail(environ, start_response):
   hostname = form.getfirst("hostname", "")
   id = int(form.getfirst("id", 1))
   c.execute("SELECT timestamp,hostname,username,message,script FROM events WHERE hostname = ? ORDER BY id DESC LIMIT 1 OFFSET ?",
-    [hostname, id])
+    [hostname, id-1])
   start_response("200 OK", [("content-type","text/plain")])
   output = []
   for row in c:
