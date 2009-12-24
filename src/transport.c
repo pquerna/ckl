@@ -41,7 +41,7 @@ static int msg_to_post_data(ckl_transport_t *t,
 {
   char buf[128];
 
-  snprintf(buf, sizeof(buf), "%d", m->ts);
+  snprintf(buf, sizeof(buf), "%d", (int)m->ts);
 
   base_post_data(t, conf, m->hostname);
 
@@ -139,7 +139,7 @@ static int ckl_transport_run(ckl_transport_t *t, ckl_conf_t *conf)
 
   if (httprc >299 || httprc <= 199) {
     fprintf(stderr, "Endpoint %s returned HTTP %d\n",
-            conf->endpoint, httprc);
+            conf->endpoint, (int)httprc);
     if (httprc == 403) {
       fprintf(stderr, "Are you sure your secret is correct?\n");
     }
