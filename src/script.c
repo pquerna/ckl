@@ -45,6 +45,8 @@ int ckl_script_init(ckl_script_t *s, ckl_conf_t *conf)
   return 0;
 }
 
+static int g_script_done = 0;
+static int g_script_child_pid = 0;
 static void script_child_finished(int signo)
 {
   int rv = 0;
@@ -52,6 +54,10 @@ static void script_child_finished(int signo)
 
   do {
     rv = wait3((int *)&status, WNOHANG, 0);
+    if (rv == g_script_child_pid) {
+      g_script_done = 1;
+      break;
+    }
   } while (rv > 0);
 }
 
@@ -76,6 +82,9 @@ static void script_write_output(ckl_script_t *s, int mpty, int spty)
       break;
     }
   }
+
+  fclose(s->fd);
+  close(mpty);
 }
 
 static void script_start_shell(ckl_script_t *s, int mpty, int spty)
@@ -99,6 +108,7 @@ int ckl_script_record(ckl_script_t *s, ckl_msg_t *msg)
   int rv;
   int mpty = 0;
   int spty = 0;
+  struct termios parent_term;
 
   /**
    * Rough Flow:
@@ -115,7 +125,6 @@ int ckl_script_record(ckl_script_t *s, ckl_msg_t *msg)
    */
 
   {
-    struct termios parent_term;
     struct winsize parent_win;
     struct termios child_term;
 
@@ -153,6 +162,7 @@ int ckl_script_record(ckl_script_t *s, ckl_msg_t *msg)
     int child = 0;
     signal(SIGCHLD, script_child_finished);
 
+    g_script_child_pid = child = fork();
     if (child < 0) {
       perror("fork() to child failed:");
       return child;
@@ -176,7 +186,7 @@ int ckl_script_record(ckl_script_t *s, ckl_msg_t *msg)
 
   {
     char buf[BUFSIZ];
-    while (1) {
+    while (g_script_done == 0) {
       rv = read(STDIN_FILENO, buf, sizeof(buf));
       if (rv > 0) {
         write(mpty, buf, rv);
@@ -187,6 +197,11 @@ int ckl_script_record(ckl_script_t *s, ckl_msg_t *msg)
     }
   }
 
+  tcsetattr(STDIN_FILENO, TCSAFLUSH, &parent_term);
+
+  msg->script_log = strdup(s->path);
+  close(mpty);
+  close(spty);
   return 0;
 }
 

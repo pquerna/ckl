@@ -91,7 +91,7 @@ int main(int argc, char *const *argv)
 
   curl_global_init(CURL_GLOBAL_ALL);
 
-  while ((c = getopt(argc, argv, "hVms:")) != -1) {
+  while ((c = getopt(argc, argv, "hVsm:")) != -1) {
     switch (c) {
       case 'V':
         show_version();
