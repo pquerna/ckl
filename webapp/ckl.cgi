@@ -104,11 +104,35 @@ def process_list(environ, start_response):
     output.append("(%d) %s by %s on %s\n    %s\n" % (id, time.strftime("%Y-%m-%d %H:%M:%S UTC", t), username, hostname, message))
   return output
 
+def process_detail(environ, start_response):
+  form = cgi.FieldStorage(fp=environ['wsgi.input'],
+                          environ=environ)
+
+  secret = form.getfirst("secret", "")
+  if secret != SECRET_KEY:
+    start_response("403 Forbidden", [("content-type","text/plain")])
+    return ["Invalid Secret"]
+
+  c = get_conn().cursor()
+  hostname = form.getfirst("hostname", "")
+  id = int(form.getfirst("id", 1))
+  c.execute("SELECT timestamp,hostname,username,message,script FROM events WHERE hostname = ? ORDER BY id DESC LIMIT 1 OFFSET ?",
+    [hostname, id])
+  start_response("200 OK", [("content-type","text/plain")])
+  output = []
+  for row in c:
+    (timestamp,hostname,username,message,script) = row
+    t = time.gmtime(timestamp)
+    output.append("(%d) %s by %s on %s\n    %s\n%s\n" % (id, time.strftime("%Y-%m-%d %H:%M:%S UTC", t), username, hostname, message, script))
+  return output
+
 def mainapp(environ, start_response):
   meth = environ.get('REQUEST_METHOD', 'GET')
   pi = environ.get('PATH_INFO')
   if meth == "POST" and pi == "/list":
     return process_list(environ, start_response)
+  if meth == "POST" and pi == "/detail":
+    return process_detail(environ, start_response)
   if meth == "POST":
     return process_post(environ, start_response)
   c = get_conn().cursor()
