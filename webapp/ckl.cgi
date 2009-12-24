@@ -85,15 +85,23 @@ def mainapp(environ, start_response):
   if meth == "POST":
     return process_post(environ, start_response)
   c = get_conn().cursor()
-  c.execute("SELECT timestamp,hostname,username,message,script FROM events ORDER BY id DESC LIMIT 500")
-  start_response("200 OK", [("content-type","text/plain")])
-  output = ["server changelog: \n"]
+  form = cgi.FieldStorage(fp=environ['wsgi.input'],
+                        environ=environ)
+  s = form.getfirst("hostname")
+  if s:
+    c.execute("SELECT timestamp,hostname,username,message,script FROM events WHERE hostname = ? ORDER BY id DESC LIMIT 500",
+      [s])
+  else:
+    c.execute("SELECT timestamp,hostname,username,message,script FROM events ORDER BY id DESC LIMIT 500")
+    s = 'all servers'
+  start_response("200 OK", [("content-type","text/html")])
+  output = ["<h1>server changelog for %s:</h1>\n" % (s)]
   for row in c:
     (timestamp,hostname,username,message,script) = row
     t = time.gmtime(timestamp)
-    output.append("%s by %s on %s\n  %s\n" % (time.strftime("%Y-%m-%d %H:%M:%S UTC", t), username, hostname, message))
+    output.append("<hr>%s by %s on <a href='?hostname=%s'>%s</a><br/><pre>  %s</pre>\n" % (time.strftime("%Y-%m-%d %H:%M:%S UTC", t), username, hostname, hostname, message))
     if script != None and len(script) > 1:
-      output.append("Logged session: \n%s\n" % script)
+      output.append("Logged session: <pre>%s</pre>\n" % script)
   return output
 
 def main(environ, start_response):
