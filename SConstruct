@@ -59,6 +59,9 @@ if cc:
 if not conf.CheckFunc('floor'):
   conf.env.AppendUnique(LIBS=['m'])
 
+if not conf.CheckFunc('openpty'):
+  conf.env.AppendUnique(LIBS=['util'])
+
 cprefix = conf.CheckCurlPrefix()
 if not cprefix[0]:
   Exit("Error: Unable to detect curl prefix")
