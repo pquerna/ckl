@@ -45,6 +45,30 @@ int ckl_script_init(ckl_script_t *s, ckl_conf_t *conf)
   return 0;
 }
 
+#define USE_SIMPLE_SCRIPT
+
+#ifdef USE_SIMPLE_SCRIPT
+
+int ckl_script_record(ckl_script_t *s, ckl_msg_t *msg)
+{
+  int rv;
+  char buf[2048];
+  snprintf(buf, sizeof(buf), "script '%s'", s->path);
+
+  rv = system(buf);
+  if (rv < 0) {
+    fprintf(stderr, "os.system failed for cmd '%s'\n", buf);
+    perror("system(): ");
+    return -1;
+  }
+
+  msg->script_log = strdup(s->path);
+
+  return 0;
+}
+
+#else
+
 static int g_script_done = 0;
 static int g_script_child_pid = 0;
 static void script_child_finished(int signo)
@@ -206,6 +230,8 @@ int ckl_script_record(ckl_script_t *s, ckl_msg_t *msg)
   close(spty);
   return 0;
 }
+
+#endif
 
 void ckl_script_free(ckl_script_t *s)
 {
