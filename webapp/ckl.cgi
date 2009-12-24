@@ -43,7 +43,8 @@ def get_conn():
         hostname VARCHAR(256) NOT NULL,
         remote_ip VARCHAR(256) NOT NULL,
         username VARCHAR(256) NOT NULL,
-        message TEXT NOT NULL);
+        message TEXT NOT NULL,
+        script TEXT);
     """,
     """
     CREATE INDEX IF NOT EXISTS
@@ -69,11 +70,12 @@ def process_post(environ, start_response):
   remote_ip = environ['REMOTE_ADDR']
   username = form.getfirst("username", "")
   msg =  form.getfirst("msg", "")
+  script = form.getfirst("scriptlog")
   c = get_conn()
   c.execute("""
-      INSERT INTO events VALUES (NULL, ?, ?, ?, ?, ?)
+      INSERT INTO events VALUES (NULL, ?, ?, ?, ?, ?, ?)
                   """,
-                  [ts, hostname, remote_ip, username, msg])
+                  [ts, hostname, remote_ip, username, msg, script])
   c.commit()
   start_response("200 OK", [("content-type","text/plain")])
   return ["saved\n"]
@@ -83,13 +85,15 @@ def mainapp(environ, start_response):
   if meth == "POST":
     return process_post(environ, start_response)
   c = get_conn().cursor()
-  c.execute("SELECT timestamp,hostname,username,message FROM events ORDER BY id DESC LIMIT 500")
+  c.execute("SELECT timestamp,hostname,username,message,script FROM events ORDER BY id DESC LIMIT 500")
   start_response("200 OK", [("content-type","text/plain")])
   output = ["server changelog: \n"]
   for row in c:
-    (timestamp,hostname,username,message) = row
+    (timestamp,hostname,username,message,script) = row
     t = time.gmtime(timestamp)
     output.append("%s by %s on %s\n  %s\n" % (time.strftime("%Y-%m-%d %H:%M:%S UTC", t), username, hostname, message))
+    if script != None and len(script) > 1:
+      output.append("Logged session: \n%s\n" % script)
   return output
 
 def main(environ, start_response):
