@@ -85,6 +85,7 @@ static void script_write_output(ckl_script_t *s, int mpty, int spty)
 
   fclose(s->fd);
   close(mpty);
+  exit(0);
 }
 
 static void script_start_shell(ckl_script_t *s, int mpty, int spty)
