@@ -18,62 +18,6 @@
 #include "ckl.h"
 #include "ckl_version.h"
 
-void ckl_error_out(const char *msg)
-{
-  fprintf(stderr, "ERROR: %s\n", msg);
-  exit(EXIT_FAILURE);
-}
-
-void ckl_nuke_newlines(char *p)
-{
-  size_t i;
-  size_t l = strlen(p);
-  for (i = 0; i < l; i++) {
-    if (p[i] == '\n') {
-      p[i] = '\0';
-    }
-    if (p[i] == '\r') {
-      p[i] = '\0';
-    }
-  }
-}
-
-int ckl_tmp_file(char **path, FILE **fd)
-{
-  char buf[128];
-
-  strncpy(buf, "/tmp/ckl.XXXXXX", sizeof(buf));
-
-  int fx = mkstemp(buf);
-  if (fx < 0) {
-    perror("Failed to create tempfile");
-    return -1;
-  }
-
-  if (fd != NULL) {
-    *fd = fdopen(fx, "r+");
-  }
-
-  *path = strdup(buf);
-
-  return 0;
-}
-
-const char *ckl_hostname()
-{
-  char buf[HOST_NAME_MAX+1];
-  buf[HOST_NAME_MAX] = '\0';
-  int rv;
-
-  rv = gethostname(&buf[0], HOST_NAME_MAX);
-  if (rv < 0) {
-    ckl_error_out("gethostname returned -1.  Is your hostname set?");
-    return NULL;
-  }
-
-  return strdup(buf);
-}
-
 static void show_version()
 {
   fprintf(stdout, "ckl - %d.%d.%d\n", CKL_VERSION_MAJOR, CKL_VERSION_MINOR, CKL_VERSION_PATCH);

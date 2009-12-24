@@ -24,6 +24,7 @@ sources = Split("""
   conf.c
   editor.c
   msg.c
+  util.c
 """)
 
 ckl = lenv.Program("ckl", source=sources)
