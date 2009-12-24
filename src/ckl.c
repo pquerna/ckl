@@ -26,10 +26,17 @@ static void show_version()
 
 static void show_help()
 {
-  fprintf(stdout, "ckl - Configuration Changelog tool\n");
-  fprintf(stdout, "  Usage:  ckl [-h] [-V] [-s] [-m message]\n\n");
+  fprintf(stdout, "ckl - Cloudkick Changelog tool\n");
+  fprintf(stdout, "  Usage:  \n");
+  fprintf(stdout, "    ckl [-h|-V]\n");
+  fprintf(stdout, "    ckl [-s] [-m message]\n");
+  fprintf(stdout, "    ckl [-l]\n");
+  fprintf(stdout, "    ckl [-d number]\n");
+  fprintf(stdout, "\n");
   fprintf(stdout, "     -h          Show Help message\n");
   fprintf(stdout, "     -V          Show Version number\n");
+  fprintf(stdout, "     -l          List recent actions on this host\n");
+  fprintf(stdout, "     -d (n)      Show details about session N, listed from -l\n");
   fprintf(stdout, "     -m (msg)    Set the log message, if none is set, an editor will be invoked.\n");
   fprintf(stdout, "     -s          Run in script recrding mode.\n");
   fprintf(stdout, "See `man ckl` for more details\n");
@@ -149,6 +156,28 @@ static int do_list(ckl_conf_t *conf)
   return 0;
 }
 
+static int do_detail(ckl_conf_t *conf, int d)
+{
+  int rv;
+  ckl_transport_t *transport = calloc(1, sizeof(ckl_transport_t));
+
+  rv = ckl_transport_init(transport, conf);
+  if (rv < 0) {
+    ckl_error_out("transport_init failed.");
+    return rv;
+  }
+
+  rv = ckl_transport_detail(transport, conf, d);
+  if (rv < 0) {
+    ckl_error_out("ckl_transport_detail failed.");
+    return rv;
+  }
+
+  ckl_transport_free(transport);
+
+  return 0;
+}
+
 enum {
   MODE_SEND_MSG,
   MODE_LIST,
@@ -160,12 +189,13 @@ int main(int argc, char *const *argv)
   int mode = MODE_SEND_MSG;
   int c;
   int rv;
+  int detail = 0;
   const char *usermsg = NULL;
   ckl_conf_t *conf = calloc(1, sizeof(ckl_conf_t));
 
   curl_global_init(CURL_GLOBAL_ALL);
 
-  while ((c = getopt(argc, argv, "hVslm:L:")) != -1) {
+  while ((c = getopt(argc, argv, "hVslm:d:")) != -1) {
     switch (c) {
       case 'V':
         show_version();
@@ -176,8 +206,9 @@ int main(int argc, char *const *argv)
       case 'l':
         mode = MODE_LIST;
         break;
-      case 'L':
+      case 'd':
         mode = MODE_DETAIL;
+        detail = atoi(optarg);
         break;
       case 'm':
         usermsg = optarg;
@@ -205,6 +236,7 @@ int main(int argc, char *const *argv)
       rv = do_list(conf);
       break;
     case MODE_DETAIL:
+      rv = do_detail(conf, detail);
       break;
   }
 

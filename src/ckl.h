@@ -74,6 +74,9 @@ int ckl_transport_msg_send(ckl_transport_t *t,
 int ckl_transport_list(ckl_transport_t *t,
                        ckl_conf_t *conf,
                        int count);
+int ckl_transport_detail(ckl_transport_t *t,
+                         ckl_conf_t *conf,
+                         int id);
 
 /* script functions */
 int ckl_script_init(ckl_script_t *s, ckl_conf_t *conf);

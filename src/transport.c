@@ -18,36 +18,43 @@
 #include "ckl.h"
 #include "ckl_version.h"
 
+static void base_post_data(ckl_transport_t *t,
+                           ckl_conf_t *conf,
+                           const char *hostname)
+{
+  curl_formadd(&t->formpost,
+               &t->lastptr,
+               CURLFORM_COPYNAME, "hostname",
+               CURLFORM_COPYCONTENTS, hostname,
+               CURLFORM_END);
+
+  curl_formadd(&t->formpost,
+               &t->lastptr,
+               CURLFORM_COPYNAME, "secret",
+               CURLFORM_COPYCONTENTS, conf->secret,
+               CURLFORM_END);
+}
+
 static int msg_to_post_data(ckl_transport_t *t,
                             ckl_conf_t *conf,
                             ckl_msg_t* m)
 {
   char buf[128];
-  
+
   snprintf(buf, sizeof(buf), "%d", m->ts);
-  
+
+  base_post_data(t, conf, m->hostname);
+
   curl_formadd(&t->formpost,
                &t->lastptr,
                CURLFORM_COPYNAME, "username",
                CURLFORM_COPYCONTENTS, m->username,
                CURLFORM_END);
-  
-  curl_formadd(&t->formpost,
-               &t->lastptr,
-               CURLFORM_COPYNAME, "hostname",
-               CURLFORM_COPYCONTENTS, m->hostname,
-               CURLFORM_END);
-  
+
   curl_formadd(&t->formpost,
                &t->lastptr,
                CURLFORM_COPYNAME, "msg",
                CURLFORM_COPYCONTENTS, m->msg,
-               CURLFORM_END);
-  
-  curl_formadd(&t->formpost,
-               &t->lastptr,
-               CURLFORM_COPYNAME, "secret",
-               CURLFORM_COPYCONTENTS, conf->secret,
                CURLFORM_END);
   
   curl_formadd(&t->formpost,
@@ -78,21 +85,34 @@ static int list_to_post_data(ckl_transport_t *t,
   const char *hostname = ckl_hostname();
   snprintf(buf, sizeof(buf), "%d", count);
 
-  curl_formadd(&t->formpost,
-               &t->lastptr,
-               CURLFORM_COPYNAME, "hostname",
-               CURLFORM_COPYCONTENTS, hostname,
-               CURLFORM_END);
+  base_post_data(t, conf, hostname);
 
-  curl_formadd(&t->formpost,
-               &t->lastptr,
-               CURLFORM_COPYNAME, "secret",
-               CURLFORM_COPYCONTENTS, conf->secret,
-               CURLFORM_END);
-
+  free((char*)hostname);
   curl_formadd(&t->formpost,
                &t->lastptr,
                CURLFORM_COPYNAME, "limit",
+               CURLFORM_COPYCONTENTS, buf,
+               CURLFORM_END);
+
+  curl_easy_setopt(t->curl, CURLOPT_HTTPPOST, t->formpost);
+
+  return 0;
+}
+
+static int detail_to_post_data(ckl_transport_t *t,
+                             ckl_conf_t *conf,
+                             int d)
+{
+  char buf[128];
+  const char *hostname = ckl_hostname();
+  snprintf(buf, sizeof(buf), "%d", d);
+
+  base_post_data(t, conf, hostname);
+
+  free((char*)hostname);
+  curl_formadd(&t->formpost,
+               &t->lastptr,
+               CURLFORM_COPYNAME, "id",
                CURLFORM_COPYCONTENTS, buf,
                CURLFORM_END);
 
@@ -143,6 +163,21 @@ int ckl_transport_msg_send(ckl_transport_t *t,
 }
 
 
+static void change_url(ckl_transport_t *t,
+                       ckl_conf_t *conf,
+                       const char *append)
+{
+  char *epbuf = calloc(1, strlen(conf->endpoint)+strlen(append)+1);
+
+  strcat(epbuf, conf->endpoint);
+
+  strcat(epbuf+strlen(conf->endpoint), append);
+
+  curl_easy_setopt(t->curl, CURLOPT_URL, epbuf);
+
+  free(epbuf);
+}
+
 int ckl_transport_list(ckl_transport_t *t,
                        ckl_conf_t *conf,
                        int count)
@@ -153,13 +188,22 @@ int ckl_transport_list(ckl_transport_t *t,
     return rv;
   }
 
-  char *epbuf = malloc(strlen(conf->endpoint)+strlen("/list")+1);
-  epbuf = strcat(epbuf, conf->endpoint);
-  strcat(epbuf+strlen(conf->endpoint), "/list");
+  change_url(t, conf, "/list");
 
-  curl_easy_setopt(t->curl, CURLOPT_URL, epbuf);
+  return ckl_transport_run(t, conf);
+}
 
-  free(epbuf);
+int ckl_transport_detail(ckl_transport_t *t,
+                         ckl_conf_t *conf,
+                         int id)
+{
+  int rv = detail_to_post_data(t, conf, id);
+
+  if (rv < 0) {
+    return rv;
+  }
+
+  change_url(t, conf, "/detail");
 
   return ckl_transport_run(t, conf);
 }
