@@ -96,6 +96,11 @@ def mainapp(environ, start_response):
     s = 'all servers'
   start_response("200 OK", [("content-type","text/html")])
   output = ["<h1>server changelog for %s:</h1>\n" % (s)]
+  output.append("""<script type='text/javascript'>
+  function unhide(id) {
+    document.getElementById('script_'+ id).style.display = 'inline';
+  }
+  </script>""")
   cserv = get_conn().cursor()
   cserv.execute("SELECT DISTINCT hostname FROM events ORDER BY hostname");
   output.append("<form method='GET'><p>Hosts: <select name='hostname'>")
@@ -103,12 +108,15 @@ def mainapp(environ, start_response):
   for row in cserv:
     output.append("<option value='%s'>%s</option>" % (row[0], row[0]))
   output.append("</select><input type='submit' value='Go'></p></form>")
+  id = 0
   for row in c:
+    id = id + 1
     (timestamp,hostname,username,message,script) = row
     t = time.gmtime(timestamp)
     output.append("<hr><code>%s by %s on <a href='?hostname=%s'>%s</a></code><br/><pre>  %s</pre>\n" % (time.strftime("%Y-%m-%d %H:%M:%S UTC", t), username, hostname, hostname, message))
     if script != None and len(script) > 1:
-      output.append("<textarea rows='15' cols='100'>%s</textarea>\n" % script)
+      output.append("<a href='javascript:unhide(%d)'>script log available</a>"% (id))
+      output.append("<br><textarea style='display: none' id='script_%d' rows='15' cols='100'>%s</textarea>\n" % (id, script))
   return output
 
 def main(environ, start_response):
