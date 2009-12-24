@@ -19,7 +19,7 @@
 #define _ckl_version_h_
 
 #define CKL_VERSION_MAJOR 0
-#define CKL_VERSION_MINOR 1
-#define CKL_VERSION_PATCH 3
+#define CKL_VERSION_MINOR 2
+#define CKL_VERSION_PATCH 0
 
 #endif
