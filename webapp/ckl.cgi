@@ -88,7 +88,7 @@ def mainapp(environ, start_response):
   form = cgi.FieldStorage(fp=environ['wsgi.input'],
                         environ=environ)
   s = form.getfirst("hostname")
-  if s:
+  if s and len(s) > 0:
     c.execute("SELECT timestamp,hostname,username,message,script FROM events WHERE hostname = ? ORDER BY id DESC LIMIT 500",
       [s])
   else:
@@ -96,6 +96,13 @@ def mainapp(environ, start_response):
     s = 'all servers'
   start_response("200 OK", [("content-type","text/html")])
   output = ["<h1>server changelog for %s:</h1>\n" % (s)]
+  cserv = get_conn().cursor()
+  cserv.execute("SELECT DISTINCT hostname FROM events ORDER BY hostname");
+  output.append("<form method='GET'><p>Hosts: <select name='hostname'>")
+  output.append("<option value=''>--all--</option>")
+  for row in cserv:
+    output.append("<option value='%s'>%s</option>" % (row[0], row[0]))
+  output.append("</select><input type='submit' value='Go'></p></form>")
   for row in c:
     (timestamp,hostname,username,message,script) = row
     t = time.gmtime(timestamp)
