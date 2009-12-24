@@ -70,29 +70,53 @@ static int msg_to_post_data(ckl_transport_t *t,
   return 0;
 }
 
+static int list_to_post_data(ckl_transport_t *t,
+                            ckl_conf_t *conf,
+                            int count)
+{
+  char buf[128];
+  const char *hostname = ckl_hostname();
+  snprintf(buf, sizeof(buf), "%d", count);
 
-int ckl_transport_msg_send(ckl_transport_t *t,
-                           ckl_conf_t *conf,
-                           ckl_msg_t* m)
+  curl_formadd(&t->formpost,
+               &t->lastptr,
+               CURLFORM_COPYNAME, "hostname",
+               CURLFORM_COPYCONTENTS, hostname,
+               CURLFORM_END);
+
+  curl_formadd(&t->formpost,
+               &t->lastptr,
+               CURLFORM_COPYNAME, "secret",
+               CURLFORM_COPYCONTENTS, conf->secret,
+               CURLFORM_END);
+
+  curl_formadd(&t->formpost,
+               &t->lastptr,
+               CURLFORM_COPYNAME, "limit",
+               CURLFORM_COPYCONTENTS, buf,
+               CURLFORM_END);
+
+  curl_easy_setopt(t->curl, CURLOPT_HTTPPOST, t->formpost);
+
+  return 0;
+}
+
+
+static int ckl_transport_run(ckl_transport_t *t, ckl_conf_t *conf)
 {
   long httprc = -1;
   CURLcode res;
-  int rv = msg_to_post_data(t, conf, m);
-  
-  if (rv < 0) {
-    return rv;
-  }
-  
+
   res = curl_easy_perform(t->curl);
-  
+
   if (res != 0) {
     fprintf(stderr, "Failed talking to endpoint %s: (%d) %s\n\n",
             conf->endpoint, res, curl_easy_strerror(res));
     return -1;
   }
-  
+
   curl_easy_getinfo(t->curl, CURLINFO_RESPONSE_CODE, &httprc);
-  
+
   if (httprc >299 || httprc <= 199) {
     fprintf(stderr, "Endpoint %s returned HTTP %d\n",
             conf->endpoint, httprc);
@@ -101,8 +125,43 @@ int ckl_transport_msg_send(ckl_transport_t *t,
     }
     return -1;
   }
-  
+
   return 0;
+}
+
+int ckl_transport_msg_send(ckl_transport_t *t,
+                           ckl_conf_t *conf,
+                           ckl_msg_t* m)
+{
+  int rv = msg_to_post_data(t, conf, m);
+
+  if (rv < 0) {
+    return rv;
+  }
+
+  return ckl_transport_run(t, conf);
+}
+
+
+int ckl_transport_list(ckl_transport_t *t,
+                       ckl_conf_t *conf,
+                       int count)
+{
+  int rv = list_to_post_data(t, conf, count);
+
+  if (rv < 0) {
+    return rv;
+  }
+
+  char *epbuf = malloc(strlen(conf->endpoint)+strlen("/list")+1);
+  epbuf = strcat(epbuf, conf->endpoint);
+  strcat(epbuf+strlen(conf->endpoint), "/list");
+
+  curl_easy_setopt(t->curl, CURLOPT_URL, epbuf);
+
+  free(epbuf);
+
+  return ckl_transport_run(t, conf);
 }
 
 int ckl_transport_init(ckl_transport_t *t, ckl_conf_t *conf)

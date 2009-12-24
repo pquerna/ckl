@@ -59,6 +59,21 @@ int ckl_tmp_file(char **path, FILE **fd)
   return 0;
 }
 
+const char *ckl_hostname()
+{
+  char buf[HOST_NAME_MAX+1];
+  buf[HOST_NAME_MAX] = '\0';
+  int rv;
+
+  rv = gethostname(&buf[0], HOST_NAME_MAX);
+  if (rv < 0) {
+    ckl_error_out("gethostname returned -1.  Is your hostname set?");
+    return NULL;
+  }
+
+  return strdup(buf);
+}
+
 static void show_version()
 {
   fprintf(stdout, "ckl - %d.%d.%d\n", CKL_VERSION_MAJOR, CKL_VERSION_MINOR, CKL_VERSION_PATCH);
@@ -88,12 +103,14 @@ static int do_send_msg(ckl_conf_t *conf, const char *usermsg)
   rv = ckl_msg_init(msg);
   if (rv < 0) {
     ckl_error_out("msg_init failed.");
+    return rv;
   }
 
   if (usermsg == NULL) {
     rv = ckl_editor_find(&editor);
     if (rv < 0) {
       ckl_error_out("unable to find text editor. Set EDITOR or use -m");
+      return rv;
     }
     char *path;
     FILE *fd;
@@ -101,21 +118,25 @@ static int do_send_msg(ckl_conf_t *conf, const char *usermsg)
     rv = ckl_tmp_file(&path, &fd);
     if (rv < 0) {
       ckl_error_out("Failed to setup tempfile for editting.");
+      return rv;
     }
 
     rv = ckl_editor_fill_file(conf, msg, fd);
     if (rv < 0) {
       ckl_error_out("Failed to prefile file");
+      return rv;
     }
 
     rv = ckl_editor_edit(editor, path);
     if (rv < 0) {
       ckl_error_out("editor broke?");
+      return rv;
     }
 
     rv = ckl_editor_read_file(msg, path);
     if (rv < 0) {
       ckl_error_out("Failed to read editted file");
+      return rv;
     }
 
     fclose(fd);
@@ -133,27 +154,53 @@ static int do_send_msg(ckl_conf_t *conf, const char *usermsg)
     rv = ckl_script_init(script, conf);
     if (rv < 0) {
       ckl_error_out("script_init failed.");
+      return rv;
     }
 
     rv = ckl_script_record(script, msg);
     if (rv < 0) {
       ckl_error_out("script_record failed.");
+      return rv;
     }
   }
 
   rv = ckl_transport_init(transport, conf);
   if (rv < 0) {
     ckl_error_out("transport_init failed.");
+    return rv;
   }
 
   rv = ckl_transport_msg_send(transport, conf, msg);
   if (rv < 0) {
     ckl_error_out("msg_send failed.");
+    return rv;
   }
 
   ckl_transport_free(transport);
   ckl_msg_free(msg);
   ckl_script_free(script);
+
+  return 0;
+}
+
+static int do_list(ckl_conf_t *conf)
+{
+  int rv;
+  ckl_transport_t *transport = calloc(1, sizeof(ckl_transport_t));
+
+  rv = ckl_transport_init(transport, conf);
+  if (rv < 0) {
+    ckl_error_out("transport_init failed.");
+    return rv;
+  }
+
+  rv = ckl_transport_list(transport, conf, 5);
+  if (rv < 0) {
+    ckl_error_out("ckl_transport_list failed.");
+    return rv;
+  }
+
+  ckl_transport_free(transport);
 
   return 0;
 }
@@ -211,6 +258,7 @@ int main(int argc, char *const *argv)
       rv = do_send_msg(conf, usermsg);
       break;
     case MODE_LIST:
+      rv = do_list(conf);
       break;
     case MODE_DETAIL:
       break;

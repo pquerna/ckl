@@ -21,32 +21,20 @@ int ckl_msg_init(ckl_msg_t *msg)
 {
   {
     const char *user = getenv("SUDO_USER");
-    
+
     if (user == NULL) {
       user = getlogin();
     }
-    
+
     if (user == NULL) {
       ckl_error_out("Unknown user: getlogin(2) and SUDO_USER both returned NULL.");
     }
-    
+
     msg->username = strdup(user);
   }
-  
-  {
-    char buf[HOST_NAME_MAX+1];
-    buf[HOST_NAME_MAX] = '\0';
-    int rv;
-    
-    rv = gethostname(&buf[0], HOST_NAME_MAX);
-    if (rv < 0) {
-      ckl_error_out("gethostname returned -1.  Is your hostname set?");
-      return -1;
-    }
-    
-    msg->hostname = strdup(buf);
-  }
-  
+
+  msg->hostname = ckl_hostname();
+
   msg->ts = time(NULL);
   
   return 0;
