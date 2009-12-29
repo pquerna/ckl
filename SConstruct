@@ -59,7 +59,7 @@ if cc:
 if not conf.CheckFunc('floor'):
   conf.env.AppendUnique(LIBS=['m'])
 
-if not conf.CheckFunc('openpty'):
+if conf.CheckLib('util', symbol='openpty'):
   conf.env.AppendUnique(LIBS=['util'])
 
 cprefix = conf.CheckCurlPrefix()
