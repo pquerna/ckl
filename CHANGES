@@ -1,0 +1,11 @@
+                                                         -*- coding: utf-8 -*-
+Changes with ckl 0.2.1, in development
+
+  *) Use `vi` if no EDITOR variable is set. [Paul Querna]
+
+  *) Fix build issues for Solaris. [Paul Querna]
+
+
+Changes with ckl 0.2.0, released December 24 2009
+
+  *) Initial Public Release
