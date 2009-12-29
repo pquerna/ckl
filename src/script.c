@@ -17,6 +17,9 @@
 
 #include "ckl.h"
 
+#define USE_SIMPLE_SCRIPT
+
+#ifdef USE_SIMPLE_SCRIPT
 /* TODO: detect headers in sconsript */
 #ifdef __linux__
 #include <pty.h>
@@ -28,6 +31,7 @@
 #include <libutil.h>
 #else
 #include <util.h>
+#endif
 #endif
 #endif
 
@@ -57,8 +61,6 @@ int ckl_script_init(ckl_script_t *s, ckl_conf_t *conf)
 
   return 0;
 }
-
-#define USE_SIMPLE_SCRIPT
 
 #ifdef USE_SIMPLE_SCRIPT
 
