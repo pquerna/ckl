@@ -3,7 +3,7 @@ Version: %version_string%
 Section: non-free/net
 Priority: optional
 Architecture: %debian_arch%
-Depends: openssl, lsb-base (>= 3.0-6), libcurl3
+Depends: openssl, lsb-base (>= 3.0-6), libcurl3, cloudkick-config
 Maintainer: support@cloudkick.com
 Provides: ckl
 Homepage: http://www.cloudkick.com
