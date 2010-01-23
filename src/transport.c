@@ -17,6 +17,7 @@
 
 #include "ckl.h"
 #include "ckl_version.h"
+#include "extern/liboauth/src/oauth.h"
 
 static void base_post_data(ckl_transport_t *t,
                            ckl_conf_t *conf,
@@ -28,11 +29,13 @@ static void base_post_data(ckl_transport_t *t,
                CURLFORM_COPYCONTENTS, hostname,
                CURLFORM_END);
 
-  curl_formadd(&t->formpost,
-               &t->lastptr,
-               CURLFORM_COPYNAME, "secret",
-               CURLFORM_COPYCONTENTS, conf->secret,
-               CURLFORM_END);
+  if (conf->secret) {
+    curl_formadd(&t->formpost,
+                 &t->lastptr,
+                 CURLFORM_COPYNAME, "secret",
+                 CURLFORM_COPYCONTENTS, conf->secret,
+                 CURLFORM_END);
+  }
 }
 
 static int msg_to_post_data(ckl_transport_t *t,
@@ -121,11 +124,39 @@ static int detail_to_post_data(ckl_transport_t *t,
   return 0;
 }
 
+static char *strappend(const char *a, const char *b)
+{
+  size_t la = strlen(a);
+  size_t lb = strlen(b);
+  char *c = malloc(la + lb + 1);
+  memcpy(c, a, la);
+  memcpy(c+la, b, lb);
+  c[la+lb] = '\0';
+  return c;
+}
 
 static int ckl_transport_run(ckl_transport_t *t, ckl_conf_t *conf)
 {
   long httprc = -1;
   CURLcode res;
+  char *url = strdup(conf->endpoint);
+  char *postarg = NULL;
+
+  if (t->append_url) {
+    free(url);
+    url = strappend(conf->endpoint, t->append_url);
+  }
+
+  if (conf->oauth_key && conf->oauth_secret) {
+    char *url2;
+    url2 = oauth_sign_url2(url, NULL, OA_HMAC, "POST",
+                           conf->oauth_key, conf->oauth_secret,
+                           NULL, NULL);
+    free(url);
+    url = url2;
+  }
+
+  curl_easy_setopt(t->curl, CURLOPT_URL, url);
 
   res = curl_easy_perform(t->curl);
 
@@ -146,6 +177,7 @@ static int ckl_transport_run(ckl_transport_t *t, ckl_conf_t *conf)
     return -1;
   }
 
+  free(url);
   return 0;
 }
 
@@ -163,21 +195,6 @@ int ckl_transport_msg_send(ckl_transport_t *t,
 }
 
 
-static void change_url(ckl_transport_t *t,
-                       ckl_conf_t *conf,
-                       const char *append)
-{
-  char *epbuf = calloc(1, strlen(conf->endpoint)+strlen(append)+1);
-
-  strcat(epbuf, conf->endpoint);
-
-  strcat(epbuf+strlen(conf->endpoint), append);
-
-  curl_easy_setopt(t->curl, CURLOPT_URL, epbuf);
-
-  free(epbuf);
-}
-
 int ckl_transport_list(ckl_transport_t *t,
                        ckl_conf_t *conf,
                        int count)
@@ -188,7 +205,7 @@ int ckl_transport_list(ckl_transport_t *t,
     return rv;
   }
 
-  change_url(t, conf, "/list");
+  t->append_url = "/list";
 
   return ckl_transport_run(t, conf);
 }
@@ -203,7 +220,7 @@ int ckl_transport_detail(ckl_transport_t *t,
     return rv;
   }
 
-  change_url(t, conf, "/detail");
+  t->append_url = "/detail";
 
   return ckl_transport_run(t, conf);
 }
@@ -218,9 +235,9 @@ int ckl_transport_init(ckl_transport_t *t, ckl_conf_t *conf)
   snprintf(uabuf, sizeof(uabuf), "ckl/%d.%d.%d (Changelog Client)",
            CKL_VERSION_MAJOR, CKL_VERSION_MINOR, CKL_VERSION_PATCH);
   
-  curl_easy_setopt(t->curl, CURLOPT_URL, conf->endpoint);
   curl_easy_setopt(t->curl, CURLOPT_USERAGENT, uabuf);
-  
+  t->append_url = "/";
+
 #ifdef CKL_DEBUG
   curl_easy_setopt(t->curl, CURLOPT_VERBOSE, 1);
 #endif

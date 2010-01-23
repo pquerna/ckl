@@ -76,7 +76,7 @@ if conf.env.WhereIs('dpkg'):
   if not st:
     Exit()
 
-conf.env.AppendUnique(CPPPATH = [pjoin(cprefix[1], "include")])
+conf.env.AppendUnique(CPPPATH = [pjoin(cprefix[1], "include"), "#"])
 
 # TOOD: this is less than optimal, since curl-config polutes this quite badly :(
 t = clibs[1].replace('-g0 ', '')

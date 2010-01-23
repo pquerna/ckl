@@ -19,6 +19,9 @@ targets = {}
 
 lenv = env.Clone()
 lenv.Append(CPPPATH=['#extern/liboauth/src'])
-targets['liboauth'] = lenv.StaticLibrary('liboauth', source = ['liboauth/src/oauth.c'])
+targets['liboauth'] = lenv.StaticLibrary('liboauth',
+                                         source = ['liboauth/src/oauth.c',
+                                                   'liboauth/src/xmalloc.c', 
+                                                   'liboauth/src/oauth_http.c'])
 
 Return("targets")

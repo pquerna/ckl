@@ -33,6 +33,7 @@
 
 typedef struct ckl_transport_t {
   CURL *curl;
+  const char *append_url;
   struct curl_slist *headerlist;
   struct curl_httppost *formpost;
   struct curl_httppost *lastptr;
