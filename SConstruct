@@ -91,6 +91,10 @@ env = conf.Finish()
 
 Export("env")
 
+extern = SConscript("extern/SConscript")
+
+Export("extern")
+
 ckl = SConscript("src/SConscript")
 
 targets = [ckl]
