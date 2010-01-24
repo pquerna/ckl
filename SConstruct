@@ -59,7 +59,7 @@ if cc:
 if not conf.CheckFunc('floor'):
   conf.env.AppendUnique(LIBS=['m'])
 
-if not conf.CheckFunc('openpty'):
+if conf.CheckLib('util', symbol='openpty'):
   conf.env.AppendUnique(LIBS=['util'])
 
 cprefix = conf.CheckCurlPrefix()
@@ -76,17 +76,24 @@ if conf.env.WhereIs('dpkg'):
   if not st:
     Exit()
 
-conf.env.AppendUnique(CPPPATH = [pjoin(cprefix[1], "include")])
+conf.env.AppendUnique(CPPPATH = [pjoin(cprefix[1], "include"), "#"])
 
 # TOOD: this is less than optimal, since curl-config polutes this quite badly :(
-d = conf.env.ParseFlags(clibs[1])
+t = clibs[1].replace('-g0 ', '')
+t = t.replace('-Wno-system-headers ', '')
+t = t.replace('-Os ', '')
+d = conf.env.ParseFlags(t)
 conf.env.MergeFlags(d)
-conf.env.AppendUnique(CPPFLAGS = ["-Wall"])
+conf.env.AppendUnique(CPPFLAGS = ["-Wall", '-O0', '-ggdb'])
 # this is needed on solaris because of its dumb library path issues
 conf.env.AppendUnique(RPATH = conf.env.get('LIBPATH'))
 env = conf.Finish()
 
 Export("env")
+
+extern = SConscript("extern/SConscript")
+
+Export("extern")
 
 ckl = SConscript("src/SConscript")
 

@@ -17,6 +17,18 @@
 
 #include "ckl.h"
 
+static char *next_chunk(char **x_p)
+{
+  char *p = *x_p;
+
+  while (isspace(p[0])) { p++;};
+
+  ckl_nuke_newlines(p);
+
+  *x_p = p;
+  return strdup(p);
+}
+
 static int conf_parse(ckl_conf_t *conf, FILE *fp)
 {
   char buf[8096];
@@ -29,25 +41,40 @@ static int conf_parse(ckl_conf_t *conf, FILE *fp)
     
     while (isspace(p[0])) { p++;};
     
-    if (strncmp("endpoint", p, 8) == 0) {
-      p += 8;
-      while (isspace(p[0])) { p++;};
+    if (strncmp("ckl_endpoint", p, 12) == 0) {
+      p += 12;
       if (conf->endpoint) {
         free((char*)conf->endpoint);
       }
-      ckl_nuke_newlines(p);
-      conf->endpoint = strdup(p);
+      conf->endpoint = next_chunk(&p);
       continue;
     }
     
+    /* Deprecated: 'secret' based authentication */
     if (strncmp("secret", p, 6) == 0) {
       p += 6;
-      while (isspace(p[0])) { p++;};
       if (conf->secret) {
         free((char*)conf->secret);
       }
-      ckl_nuke_newlines(p);
-      conf->secret = strdup(p);
+      conf->secret = next_chunk(&p);
+      continue;
+    }
+
+    if (strncmp("oauth_secret", p, 12) == 0) {
+      p += 12;
+      if (conf->oauth_secret) {
+        free((char*)conf->oauth_secret);
+      }
+      conf->oauth_secret = next_chunk(&p);
+      continue;
+    }
+
+    if (strncmp("oauth_key", p, 9) == 0) {
+      p += 9;
+      if (conf->oauth_key) {
+        free((char*)conf->oauth_key);
+      }
+      conf->oauth_key = next_chunk(&p);
       continue;
     }
   }
@@ -61,7 +88,7 @@ int ckl_conf_init(ckl_conf_t *conf)
   FILE *fp;
   
   /* TODO: respect prefix */
-  fp = fopen("/etc/ckl.conf", "r");
+  fp = fopen("/etc/cloudkick.conf", "r");
   if (fp == NULL) {
     char buf[2048];
     const char *home = getenv("HOME");
@@ -77,9 +104,7 @@ int ckl_conf_init(ckl_conf_t *conf)
     
     if (fp == NULL) {
       fprintf(stderr, "Unable to read configuration file.\n");
-      fprintf(stderr, "Please create '/etc/ckl.conf' or '~/.ckl' with the following:\n");
-      fprintf(stderr, "  endpoint https://example.com/ckl\n");
-      fprintf(stderr, "  secret ExampleSecret\n");
+      fprintf(stderr, "Please run cloudkick-config, or visit https://support.cloudkick.com/Ckl/Installation\n");
       ckl_error_out("No configuration file available.");
       return -1;
     }
@@ -87,20 +112,26 @@ int ckl_conf_init(ckl_conf_t *conf)
   
   rv = conf_parse(conf, fp);
   if (rv < 0) {
-    ckl_error_out("parsing config file failed");
+    ckl_error_out("parsing config file failed. \nFor help go to https://support.cloudkick.com/Ckl/Installation");
     return rv;
   }
   
   fclose(fp);
   
-  if (!conf->endpoint || strlen(conf->endpoint) < 8 /* len(http://a) */) {
-    ckl_error_out("Configuration file is missing endpoint");
+  if (!conf->endpoint) {
+    conf->endpoint = strdup("https://api.cloudkick.com/changelog/1.0");
+  }
+
+  if (strlen(conf->endpoint) < 8 /* len(http://a) */) {
+    ckl_error_out("Configuration file has invalid ckl_endpoint. \nFor help go to https://support.cloudkick.com/Ckl/Installation");
     return -1;
   }
   
-  if (!conf->secret || strlen(conf->secret) < 1) {
-    ckl_error_out("Configuration file is missing secret");
-    return -1;
+  if (!conf->oauth_key && !conf->oauth_secret) {
+    if (!conf->secret || strlen(conf->secret) < 1) {
+      ckl_error_out("Configuration file is missing secret, oauth_key and oauth_secret. \nFor help go to https://support.cloudkick.com/Ckl/Installation\n");
+      return -1;
+    }
   }
   
   return 0;

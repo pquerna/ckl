@@ -17,6 +17,7 @@
 
 #include "ckl.h"
 #include "ckl_version.h"
+#include "extern/liboauth/src/oauth.h"
 
 static void base_post_data(ckl_transport_t *t,
                            ckl_conf_t *conf,
@@ -28,11 +29,13 @@ static void base_post_data(ckl_transport_t *t,
                CURLFORM_COPYCONTENTS, hostname,
                CURLFORM_END);
 
-  curl_formadd(&t->formpost,
-               &t->lastptr,
-               CURLFORM_COPYNAME, "secret",
-               CURLFORM_COPYCONTENTS, conf->secret,
-               CURLFORM_END);
+  if (conf->secret) {
+    curl_formadd(&t->formpost,
+                 &t->lastptr,
+                 CURLFORM_COPYNAME, "secret",
+                 CURLFORM_COPYCONTENTS, conf->secret,
+                 CURLFORM_END);
+  }
 }
 
 static int msg_to_post_data(ckl_transport_t *t,
@@ -63,17 +66,6 @@ static int msg_to_post_data(ckl_transport_t *t,
                CURLFORM_COPYCONTENTS, buf,
                CURLFORM_END);
 
-  if (m->script_log != NULL) {
-    curl_formadd(&t->formpost,
-                 &t->lastptr,
-                 CURLFORM_COPYNAME, "scriptlog",
-                 CURLFORM_FILE, m->script_log,
-                 CURLFORM_FILENAME, "script.log",
-                 CURLFORM_CONTENTTYPE, "text/plain", CURLFORM_END);
-  }
-  
-  curl_easy_setopt(t->curl, CURLOPT_HTTPPOST, t->formpost);
-  
   return 0;
 }
 
@@ -93,8 +85,6 @@ static int list_to_post_data(ckl_transport_t *t,
                CURLFORM_COPYNAME, "limit",
                CURLFORM_COPYCONTENTS, buf,
                CURLFORM_END);
-
-  curl_easy_setopt(t->curl, CURLOPT_HTTPPOST, t->formpost);
 
   return 0;
 }
@@ -116,16 +106,98 @@ static int detail_to_post_data(ckl_transport_t *t,
                CURLFORM_COPYCONTENTS, buf,
                CURLFORM_END);
 
-  curl_easy_setopt(t->curl, CURLOPT_HTTPPOST, t->formpost);
-
   return 0;
 }
 
+static char *strappend(const char *a, const char *b)
+{
+  size_t la = strlen(a);
+  size_t lb = strlen(b);
+  char *c = malloc(la + lb + 1);
+  memcpy(c, a, la);
+  memcpy(c+la, b, lb);
+  c[la+lb] = '\0';
+  return c;
+}
 
-static int ckl_transport_run(ckl_transport_t *t, ckl_conf_t *conf)
+static int ckl_transport_run(ckl_transport_t *t, ckl_conf_t *conf, ckl_msg_t* m)
 {
   long httprc = -1;
   CURLcode res;
+  char *url = strdup(conf->endpoint);
+  char *postarg = NULL;
+
+  if (t->append_url) {
+    free(url);
+    url = strappend(conf->endpoint, t->append_url);
+  }
+
+  if (conf->oauth_key && conf->oauth_secret) {
+    int  argc;
+    char **argv = NULL;
+    char *url2;
+    struct curl_httppost *tmp;
+    argc = oauth_split_post_paramters(url, &argv, 0);
+
+    for (tmp = t->formpost; tmp != NULL; tmp = tmp->next) {
+      char *p = NULL;
+      if (asprintf(&p, "%s=%s", tmp->name, tmp->contents) < 0) {
+        fprintf(stderr, "Broken asprintf: %s = %s\n",
+                 tmp->name, tmp->contents);
+        return -1;
+      }
+      oauth_add_param_to_array(&argc, &argv, p);
+      free(p);
+    }
+
+    url2 = oauth_sign_array2(&argc, &argv, NULL, 
+                             OA_HMAC, "POST",
+                             conf->oauth_key, conf->oauth_secret,
+                             "", "");
+
+    //fprintf(stderr, "url  = %s\n", url2);
+    free(url2);
+    curl_formfree(t->formpost);
+    t->formpost = NULL;
+    t->lastptr = NULL;
+    for (int i = 1; i < argc; i++) {
+      char *s = strdup(argv[i]);
+      char *p = strchr(s, '=');
+      if (p == NULL) {
+        fprintf(stderr, "Broken argv: %s = %s\n",
+                tmp->name, tmp->contents);
+        return -1;
+      }
+
+      *p = '\0';
+
+      p++;
+      
+      //fprintf(stderr, "argv[%d]: %s = %s\n", i, s, p);
+
+      curl_formadd(&t->formpost,
+                   &t->lastptr,
+                   CURLFORM_COPYNAME, s,
+                   CURLFORM_COPYCONTENTS, p,
+                   CURLFORM_END);
+    }
+
+    oauth_free_array(&argc, &argv);
+  }
+
+  if (m && m->script_log != NULL) {
+    curl_formadd(&t->formpost,
+                 &t->lastptr,
+                 CURLFORM_COPYNAME, "scriptlog",
+                 CURLFORM_FILE, m->script_log,
+                 CURLFORM_FILENAME, "script.log",
+                 CURLFORM_CONTENTTYPE, "text/plain", CURLFORM_END);
+  }
+  
+  
+  curl_easy_setopt(t->curl, CURLOPT_HTTPPOST, t->formpost);
+
+  curl_easy_setopt(t->curl, CURLOPT_URL, url);
 
   res = curl_easy_perform(t->curl);
 
@@ -146,6 +218,7 @@ static int ckl_transport_run(ckl_transport_t *t, ckl_conf_t *conf)
     return -1;
   }
 
+  free(url);
   return 0;
 }
 
@@ -159,24 +232,9 @@ int ckl_transport_msg_send(ckl_transport_t *t,
     return rv;
   }
 
-  return ckl_transport_run(t, conf);
+  return ckl_transport_run(t, conf, m);
 }
 
-
-static void change_url(ckl_transport_t *t,
-                       ckl_conf_t *conf,
-                       const char *append)
-{
-  char *epbuf = calloc(1, strlen(conf->endpoint)+strlen(append)+1);
-
-  strcat(epbuf, conf->endpoint);
-
-  strcat(epbuf+strlen(conf->endpoint), append);
-
-  curl_easy_setopt(t->curl, CURLOPT_URL, epbuf);
-
-  free(epbuf);
-}
 
 int ckl_transport_list(ckl_transport_t *t,
                        ckl_conf_t *conf,
@@ -188,9 +246,9 @@ int ckl_transport_list(ckl_transport_t *t,
     return rv;
   }
 
-  change_url(t, conf, "/list");
+  t->append_url = "/list";
 
-  return ckl_transport_run(t, conf);
+  return ckl_transport_run(t, conf, NULL);
 }
 
 int ckl_transport_detail(ckl_transport_t *t,
@@ -203,9 +261,9 @@ int ckl_transport_detail(ckl_transport_t *t,
     return rv;
   }
 
-  change_url(t, conf, "/detail");
+  t->append_url = "/detail";
 
-  return ckl_transport_run(t, conf);
+  return ckl_transport_run(t, conf, NULL);
 }
 
 int ckl_transport_init(ckl_transport_t *t, ckl_conf_t *conf)
@@ -218,9 +276,9 @@ int ckl_transport_init(ckl_transport_t *t, ckl_conf_t *conf)
   snprintf(uabuf, sizeof(uabuf), "ckl/%d.%d.%d (Changelog Client)",
            CKL_VERSION_MAJOR, CKL_VERSION_MINOR, CKL_VERSION_PATCH);
   
-  curl_easy_setopt(t->curl, CURLOPT_URL, conf->endpoint);
   curl_easy_setopt(t->curl, CURLOPT_USERAGENT, uabuf);
-  
+  t->append_url = "/";
+
 #ifdef CKL_DEBUG
   curl_easy_setopt(t->curl, CURLOPT_VERBOSE, 1);
 #endif

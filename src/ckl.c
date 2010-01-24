@@ -60,9 +60,10 @@ static int do_send_msg(ckl_conf_t *conf, const char *usermsg)
   if (usermsg == NULL) {
     rv = ckl_editor_find(&editor);
     if (rv < 0) {
-      ckl_error_out("unable to find text editor. Set EDITOR or use -m");
-      return rv;
+      fprintf(stderr, "Warning: no EDITOR found, using `vi`\n");
+      editor = "vi";
     }
+
     char *path;
     FILE *fd;
 

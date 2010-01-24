@@ -13,23 +13,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-Import("env extern")
+Import("env")
+
+targets = {}
 
 lenv = env.Clone()
-
-sources = Split("""
-  ckl.c
-  script.c
-  transport.c
-  conf.c
-  editor.c
-  msg.c
-  util.c
-""")
-
-lenv.AppendUnique(LIBS=[extern['liboauth']])
-ckl = lenv.Program("ckl", source=sources)
-
-targets = [ckl]
+lenv.Append(CPPPATH=['#extern/liboauth/src'])
+targets['liboauth'] = lenv.StaticLibrary('liboauth',
+                                         source = ['liboauth/src/oauth.c',
+                                                   'liboauth/src/xmalloc.c', 
+                                                   'liboauth/src/oauth_http.c'])
 
 Return("targets")

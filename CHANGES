@@ -1,0 +1,20 @@
+                                                         -*- coding: utf-8 -*-
+Changes with ckl 0.9.0, in development
+
+  * Cloudkickization Configuration Changes:
+      Use '/etc/cloudkick.conf' by default.
+      secret - Deprecated in favour of OAuth
+      endpoint - Replaced with 'ckl_endpoint'
+      ckl_endpoint - Uses default value of 'https://api.cloudkick.com/changelog/1.0'
+    [Paul Querna]
+
+  * Use OAuth authentication if oauth_{key,secret} are in the configuration
+     file. [Paul Querna]
+
+  * Use `vi` if no EDITOR variable is set. [Paul Querna]
+
+  * Fix build issues for Solaris. [Paul Querna]
+
+Changes with ckl 0.2.0, released December 24 2009
+
+  * Initial Public Release

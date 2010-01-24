@@ -1,0 +1,16 @@
+External code bases used by ckl.
+
+Please use the following format:
+<Project> <Version>
+  <License> 
+  <URL>
+  <Short desc of how we use it>
+  Patches: <desc of local Patches, include git commit hash>
+
+
+liboauth 0.6.0
+  MIT
+  http://liboauth.sourceforge.net/
+  Library for authentication with OAuth
+  Patches:
+    906eb23da539e3d59f6dfa1516b9e3cb0fffbb17 - Portability (header changes only)
