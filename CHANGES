@@ -1,5 +1,8 @@
                                                          -*- coding: utf-8 -*-
 
+Changes with ckl 0.9.2, in development.
+
+
 Changes with ckl 0.9.2, released January 24 2010
 
   * Details operation takes now takes a slug, instead of a number. [Paul Querna]
