@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 
+#define _GNU_SOURCE
 #include "ckl.h"
 #include "ckl_version.h"
 #include "extern/liboauth/src/oauth.h"
@@ -131,6 +132,7 @@ static int ckl_transport_run(ckl_transport_t *t, ckl_conf_t *conf, ckl_msg_t* m)
   }
 
   if (conf->oauth_key && conf->oauth_secret) {
+    int i;
     int  argc;
     char **argv = NULL;
     char *url2;
@@ -158,7 +160,7 @@ static int ckl_transport_run(ckl_transport_t *t, ckl_conf_t *conf, ckl_msg_t* m)
     curl_formfree(t->formpost);
     t->formpost = NULL;
     t->lastptr = NULL;
-    for (int i = 1; i < argc; i++) {
+    for (i = 1; i < argc; i++) {
       char *s = strdup(argv[i]);
       char *p = strchr(s, '=');
       if (p == NULL) {

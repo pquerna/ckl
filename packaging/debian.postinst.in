@@ -1,0 +1,14 @@
+#!/bin/sh
+
+set -e
+
+CONF="/etc/cloudkick.conf"
+CKCONF="/usr/bin/cloudkick-config"
+
+case "$1" in
+    configure|reconfigure)
+          if [ ! -f ${CONF} ]; then
+            ${CKCONF}
+          fi
+    ;;
+esac
