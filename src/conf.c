@@ -103,9 +103,9 @@ int ckl_conf_init(ckl_conf_t *conf)
     fp = fopen(buf, "r");
     
     if (fp == NULL) {
-      fprintf(stderr, "Unable to read configuration file.\n");
+      fprintf(stderr, "Unable to read configuration file: /etc/cloudkick.conf\n");
       fprintf(stderr, "Please run cloudkick-config, or visit https://support.cloudkick.com/Ckl/Installation\n");
-      ckl_error_out("No configuration file available.");
+      ckl_error_out("Exiting: No configuration file available.");
       return -1;
     }
   }
