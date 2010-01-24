@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 
+#define _GNU_SOURCE
 #include "ckl.h"
 #include "ckl_version.h"
 #include "extern/liboauth/src/oauth.h"
