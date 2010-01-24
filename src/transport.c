@@ -183,8 +183,6 @@ static int ckl_transport_run(ckl_transport_t *t, ckl_conf_t *conf, ckl_msg_t* m)
     }
 
     oauth_free_array(&argc, &argv);
-
-    curl_easy_setopt(t->curl, CURLOPT_HTTPPOST, t->formpost);
   }
 
   if (m && m->script_log != NULL) {
