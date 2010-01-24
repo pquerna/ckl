@@ -105,17 +105,20 @@ if env.get('HAVE_DPKG'):
 
   deb_control = env.SubstFile('packaging/debian.control.in', SUBST_DICT = subst)
   deb_conffiles = env.SubstFile('packaging/debian.conffiles.in', SUBST_DICT = subst)
+  deb_postinst = env.SubstFile('packaging/debian.postinst.in', SUBST_DICT = subst)
   fr = ""
   if env.WhereIs('fakeroot'):
     fr = env.WhereIs('fakeroot')
   debroot = "debian_temproot"
-  deb = env.Command(debname, [ckl[0], deb_control, deb_conffiles],
+  deb = env.Command(debname, [ckl[0], deb_control, deb_conffiles, deb_postinst],
                 [
                   Delete(debroot),
                   Mkdir(debroot),
                   Mkdir(pjoin(debroot, "DEBIAN")),
                   Copy(pjoin(debroot, 'DEBIAN', 'control'), deb_control[0]),
                   Copy(pjoin(debroot, 'DEBIAN', 'conffiles'), deb_conffiles[0]),
+                  Copy(pjoin(debroot, 'DEBIAN', 'postinst'), deb_postinst[0]),
+                  Chmod(pjoin(debroot, 'DEBIAN', 'postinst'), 0755),
                   Mkdir(pjoin(debroot, "usr", "bin")),
                   Copy(pjoin(debroot, "usr", "bin", 'ckl'), ckl[0][0]),
                   fr +" dpkg-deb -b "+debroot+" $TARGET",
