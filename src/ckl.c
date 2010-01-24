@@ -157,7 +157,7 @@ static int do_list(ckl_conf_t *conf)
   return 0;
 }
 
-static int do_detail(ckl_conf_t *conf, int d)
+static int do_detail(ckl_conf_t *conf, const char *slug)
 {
   int rv;
   ckl_transport_t *transport = calloc(1, sizeof(ckl_transport_t));
@@ -168,7 +168,7 @@ static int do_detail(ckl_conf_t *conf, int d)
     return rv;
   }
 
-  rv = ckl_transport_detail(transport, conf, d);
+  rv = ckl_transport_detail(transport, conf, slug);
   if (rv < 0) {
     ckl_error_out("ckl_transport_detail failed.");
     return rv;
@@ -190,7 +190,7 @@ int main(int argc, char *const *argv)
   int mode = MODE_SEND_MSG;
   int c;
   int rv;
-  int detail = 0;
+  const char *detail = NULL;
   const char *usermsg = NULL;
   ckl_conf_t *conf = calloc(1, sizeof(ckl_conf_t));
 
@@ -209,7 +209,7 @@ int main(int argc, char *const *argv)
         break;
       case 'd':
         mode = MODE_DETAIL;
-        detail = atoi(optarg);
+        detail = optarg;
         break;
       case 'm':
         usermsg = optarg;

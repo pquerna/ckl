@@ -90,12 +90,10 @@ static int list_to_post_data(ckl_transport_t *t,
 }
 
 static int detail_to_post_data(ckl_transport_t *t,
-                             ckl_conf_t *conf,
-                             int d)
+                               ckl_conf_t *conf,
+                               const char *slug)
 {
-  char buf[128];
   const char *hostname = ckl_hostname();
-  snprintf(buf, sizeof(buf), "%d", d);
 
   base_post_data(t, conf, hostname);
 
@@ -103,7 +101,7 @@ static int detail_to_post_data(ckl_transport_t *t,
   curl_formadd(&t->formpost,
                &t->lastptr,
                CURLFORM_COPYNAME, "id",
-               CURLFORM_COPYCONTENTS, buf,
+               CURLFORM_COPYCONTENTS, slug,
                CURLFORM_END);
 
   return 0;
@@ -253,9 +251,9 @@ int ckl_transport_list(ckl_transport_t *t,
 
 int ckl_transport_detail(ckl_transport_t *t,
                          ckl_conf_t *conf,
-                         int id)
+                         const char *slug)
 {
-  int rv = detail_to_post_data(t, conf, id);
+  int rv = detail_to_post_data(t, conf, slug);
 
   if (rv < 0) {
     return rv;

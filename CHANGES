@@ -1,5 +1,10 @@
                                                          -*- coding: utf-8 -*-
-Changes with ckl 0.9.0, in development
+
+Changes with ckl 0.9.1, released January 24 2010
+
+  * Details operation takes now takes a slug, instead of a number. [Paul Querna]
+
+Changes with ckl 0.9.0, released January 23 2010
 
   * Cloudkickization Configuration Changes:
       Use '/etc/cloudkick.conf' by default.
