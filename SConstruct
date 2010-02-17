@@ -76,6 +76,9 @@ if conf.env.WhereIs('dpkg'):
   if not st:
     Exit()
 
+if conf.env.WhereIs('rpmbuild'):
+    conf.env['HAVE_RPMBUILD'] = True
+
 conf.env.AppendUnique(CPPPATH = [pjoin(cprefix[1], "include"), "#"])
 
 # TOOD: this is less than optimal, since curl-config polutes this quite badly :(
@@ -99,6 +102,35 @@ ckl = SConscript("src/SConscript")
 
 targets = [ckl]
 target_packages = []
+
+def locate(pattern, root=os.curdir):
+    '''Locate all files matching supplied filename pattern in and below
+    supplied root directory.'''
+    for path, dirs, files in os.walk(os.path.abspath(root)):
+        for filename in fnmatch.filter(files, pattern):
+            yield os.path.join(path, filename)
+
+site_files = []
+site_files.extend(env.Glob("site_scons/*/*.py"))
+site_files.extend(env.Glob("site_scons/*.py"))
+site_files.extend(env.Glob("src/*.h"))
+site_files.extend(env.Glob("build.py"))
+site_files.extend(locate('*', 'extern'))
+env.Depends('.', site_files)
+
+if env.get('HAVE_RPMBUILD'):
+  env.Install('/usr/bin/', ckl[0])
+  packaging = {'NAME': 'ckl',
+                'VERSION': env['version_string'],
+                'PACKAGEVERSION':  0,
+                'LICENSE': 'Proprietary',
+                'SUMMARY': 'Cloudkick Changelog tool',
+                'DESCRIPTION': 'Cloudkick Changelog tool',
+                'X_RPM_GROUP': 'System/Monitoring',
+                'source': [],
+                'PACKAGETYPE': 'rpm'}
+  target_packages.append(env.Package(**packaging))
+
 if env.get('HAVE_DPKG'):
   subst = {}
   pkgbase = "%s-%s" % ("ckl", env['version_string'])
