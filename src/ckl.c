@@ -38,7 +38,7 @@ static void show_help()
   fprintf(stdout, "     -l          List recent actions on this host\n");
   fprintf(stdout, "     -d (n)      Show details about session N, listed from -l\n");
   fprintf(stdout, "     -m (msg)    Set the log message, if none is set, an editor will be invoked.\n");
-  fprintf(stdout, "     -s          Run in script recrding mode.\n");
+  fprintf(stdout, "     -s          Run in script recording mode.\n");
   fprintf(stdout, "See `man ckl` for more details\n");
   exit(EXIT_SUCCESS);
 }
