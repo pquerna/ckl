@@ -45,6 +45,14 @@ def read_version(prefix, path):
 env['version_major'], env['version_minor'], env['version_patch'] = read_version('CKL', 'src/ckl_version.h')
 env['version_string'] = "%d.%d.%d"  % (env['version_major'], env['version_minor'], env['version_patch'])
 
+dvpath = "/etc/debian_version"
+if os.path.exists(dvpath):
+  contents = open(dvpath).read().strip()
+  # TODO: don't hard code this
+  if contents == "4.0":
+    env['version_string'] += "~bpo40"
+
+
 conf = Configure(env, custom_tests = {'CheckCurlPrefix': ac.CheckCurlPrefix,
                                       'CheckCurlLibs': ac.CheckCurlLibs,
                                       'CheckDpkgArch': ac.CheckDpkgArch})
@@ -133,16 +141,9 @@ if env.get('HAVE_RPMBUILD'):
   target_packages.append(env.Package(**packaging))
 
 if env.get('HAVE_DPKG'):
-  dvpath = "/etc/debian_version"
-  if os.path.exists(dvpath):
-    contents = open(dvpath).read().strip()
-    # TODO: don't hard code this
-    if contents == "4.0":
-      env["DEBIAN_VERSION_EXTRA"] = "~bpo40_"
-
   subst = {}
   pkgbase = "%s-%s" % ("ckl", env['version_string'])
-  debname = pkgbase + env.get("DEBIAN_VERSION_EXTRA", "_") + env['debian_arch'] +".deb"
+  debname = pkgbase + "_" + env['debian_arch'] +".deb"
   substkeys = Split("""
   version_string
   debian_arch""")
