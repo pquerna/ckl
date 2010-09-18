@@ -29,21 +29,22 @@ static void show_help()
   fprintf(stdout, "ckl - Cloudkick Changelog tool\n");
   fprintf(stdout, "  Usage:  \n");
   fprintf(stdout, "    ckl [-h|-V]\n");
-  fprintf(stdout, "    ckl [-s] [-m message]\n");
+  fprintf(stdout, "    ckl [-s] [-c category] [-m message]\n");
   fprintf(stdout, "    ckl [-l]\n");
   fprintf(stdout, "    ckl [-d number]\n");
   fprintf(stdout, "\n");
-  fprintf(stdout, "     -h          Show Help message\n");
-  fprintf(stdout, "     -V          Show Version number\n");
-  fprintf(stdout, "     -l          List recent actions on this host\n");
-  fprintf(stdout, "     -d (n)      Show details about session N, listed from -l\n");
-  fprintf(stdout, "     -m (msg)    Set the log message, if none is set, an editor will be invoked.\n");
-  fprintf(stdout, "     -s          Run in script recording mode.\n");
+  fprintf(stdout, "     -h            Show Help message\n");
+  fprintf(stdout, "     -V            Show Version number\n");
+  fprintf(stdout, "     -l            List recent actions on this host\n");
+  fprintf(stdout, "     -d (n)        Show details about session N, listed from -l\n");
+  fprintf(stdout, "     -m (msg)      Set the log message. If none is set, an editor will be invoked.\n");
+  fprintf(stdout, "     -c (category) Set the log category.\n");
+  fprintf(stdout, "     -s            Run in script recording mode.\n");
   fprintf(stdout, "See `man ckl` for more details\n");
   exit(EXIT_SUCCESS);
 }
 
-static int do_send_msg(ckl_conf_t *conf, const char *usermsg)
+static int do_send_msg(ckl_conf_t *conf, const char *category, const char *usermsg)
 {
   int rv;
   const char *editor;
@@ -56,6 +57,8 @@ static int do_send_msg(ckl_conf_t *conf, const char *usermsg)
     ckl_error_out("msg_init failed.");
     return rv;
   }
+
+  msg->category = category;
 
   if (usermsg == NULL) {
     rv = ckl_editor_find(&editor);
@@ -192,11 +195,12 @@ int main(int argc, char *const *argv)
   int rv;
   const char *detail = NULL;
   const char *usermsg = NULL;
+  const char *category = NULL;
   ckl_conf_t *conf = calloc(1, sizeof(ckl_conf_t));
 
   curl_global_init(CURL_GLOBAL_ALL);
 
-  while ((c = getopt(argc, argv, "hVslm:d:")) != -1) {
+  while ((c = getopt(argc, argv, "hVslm:c:d:")) != -1) {
     switch (c) {
       case 'V':
         show_version();
@@ -213,6 +217,9 @@ int main(int argc, char *const *argv)
         break;
       case 'm':
         usermsg = optarg;
+        break;
+      case 'c':
+        category = optarg;
         break;
       case 's':
         conf->script_mode = 1;
@@ -231,7 +238,7 @@ int main(int argc, char *const *argv)
 
   switch (mode) {
     case MODE_SEND_MSG:
-      rv = do_send_msg(conf, usermsg);
+      rv = do_send_msg(conf, category, usermsg);
       break;
     case MODE_LIST:
       rv = do_list(conf);

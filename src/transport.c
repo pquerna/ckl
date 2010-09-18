@@ -60,7 +60,15 @@ static int msg_to_post_data(ckl_transport_t *t,
                CURLFORM_COPYNAME, "msg",
                CURLFORM_COPYCONTENTS, m->msg,
                CURLFORM_END);
-  
+
+  if (m->category != NULL) {
+    curl_formadd(&t->formpost,
+                 &t->lastptr,
+                 CURLFORM_COPYNAME, "category",
+                 CURLFORM_COPYCONTENTS, m->category,
+                 CURLFORM_END);
+  }
+
   curl_formadd(&t->formpost,
                &t->lastptr,
                CURLFORM_COPYNAME, "ts",
