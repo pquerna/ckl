@@ -83,7 +83,7 @@ static int list_to_post_data(ckl_transport_t *t,
   free((char*)hostname);
   curl_formadd(&t->formpost,
                &t->lastptr,
-               CURLFORM_COPYNAME, "limit",
+               CURLFORM_COPYNAME, "count",
                CURLFORM_COPYCONTENTS, buf,
                CURLFORM_END);
 

@@ -135,7 +135,7 @@ static int do_send_msg(ckl_conf_t *conf, const char *usermsg)
   return 0;
 }
 
-static int do_list(ckl_conf_t *conf)
+static int do_list(ckl_conf_t *conf, int count)
 {
   int rv;
   ckl_transport_t *transport = calloc(1, sizeof(ckl_transport_t));
@@ -146,7 +146,7 @@ static int do_list(ckl_conf_t *conf)
     return rv;
   }
 
-  rv = ckl_transport_list(transport, conf, 5);
+  rv = ckl_transport_list(transport, conf, count);
   if (rv < 0) {
     ckl_error_out("ckl_transport_list failed.");
     return rv;
@@ -190,6 +190,7 @@ int main(int argc, char *const *argv)
   int mode = MODE_SEND_MSG;
   int c;
   int rv;
+  int count = 10;
   const char *detail = NULL;
   const char *usermsg = NULL;
   ckl_conf_t *conf = calloc(1, sizeof(ckl_conf_t));
@@ -206,6 +207,13 @@ int main(int argc, char *const *argv)
         break;
       case 'l':
         mode = MODE_LIST;
+        char *arg = argv[optind];
+        if(arg != NULL) {
+          count = atoi(arg);
+          if(count < 1) {
+            ckl_error_out("Count cannot be less than 1. See -h for correct options.");
+          }
+        }
         break;
       case 'd':
         mode = MODE_DETAIL;
@@ -234,7 +242,7 @@ int main(int argc, char *const *argv)
       rv = do_send_msg(conf, usermsg);
       break;
     case MODE_LIST:
-      rv = do_list(conf);
+      rv = do_list(conf, count);
       break;
     case MODE_DETAIL:
       rv = do_detail(conf, detail);
