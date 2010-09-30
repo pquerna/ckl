@@ -54,7 +54,6 @@ typedef struct ckl_msg_t {
   const char *hostname;
   const char *msg;
   const char *script_log;
-  const char *category;
 } ckl_msg_t;
 
 typedef struct ckl_script_t {
