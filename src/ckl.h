@@ -83,7 +83,7 @@ int ckl_transport_detail(ckl_transport_t *t,
 
 int ckl_transport_motd(ckl_transport_t *t,
                        ckl_conf_t *conf,
-                       const char* node_id);
+                       char* node_id);
 
 /* script functions */
 int ckl_script_init(ckl_script_t *s, ckl_conf_t *conf);

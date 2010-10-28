@@ -92,7 +92,7 @@ static int list_to_post_data(ckl_transport_t *t,
 
 static int motd_to_post_data(ckl_transport_t *t,
                             ckl_conf_t *conf,
-                            const char* node_id)
+                            char* node_id)
 {
   char buf[128];
   snprintf(buf, sizeof(buf), "%s", node_id);
@@ -273,7 +273,7 @@ int ckl_transport_list(ckl_transport_t *t,
 
 int ckl_transport_motd(ckl_transport_t *t,
                        ckl_conf_t *conf,
-                       const char* node_id)
+                       char* node_id)
 {
   int rv = motd_to_post_data(t, conf, node_id);
 

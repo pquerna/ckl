@@ -18,33 +18,7 @@
 #include "ckl.h"
 #include "ckl_version.h"
 
-static void show_version()
-{
-  fprintf(stdout, "ck_motd - %d.%d.%d\n", CKL_VERSION_MAJOR, CKL_VERSION_MINOR, CKL_VERSION_PATCH);
-  exit(EXIT_SUCCESS);
-}
-
-static void show_help()
-{
-  fprintf(stdout, "ck_motd - Cloudkick Changelog tool\n");
-  fprintf(stdout, "  Usage:  \n");
-  fprintf(stdout, "    ckl [-h|-V]\n");
-  fprintf(stdout, "    ckl [-s] [-m message]\n");
-  fprintf(stdout, "    ckl [-l]\n");
-  fprintf(stdout, "    ckl [-d number]\n");
-  fprintf(stdout, "\n");
-  fprintf(stdout, "     -h          Show Help message\n");
-  fprintf(stdout, "     -V          Show Version number\n");
-  fprintf(stdout, "     -l          List recent actions on this host\n");
-  fprintf(stdout, "     -d (n)      Show details about session N, listed from -l\n");
-  fprintf(stdout, "     -m (msg)    Set the log message, if none is set, an editor will be invoked.\n");
-  fprintf(stdout, "     -s          Run in script recording mode.\n");
-  fprintf(stdout, "See `man ckl` for more details\n");
-  exit(EXIT_SUCCESS);
-}
-
-
-static int do_motd(ckl_conf_t *conf, const char* node_id)
+static int do_motd(ckl_conf_t *conf, char* node_id)
 {
   int rv;
   ckl_transport_t *transport = calloc(1, sizeof(ckl_transport_t));
@@ -66,40 +40,31 @@ static int do_motd(ckl_conf_t *conf, const char* node_id)
   return 0;
 }
 
-
 int main(int argc, char *const *argv)
 {
-  int c;
   int rv;
-  int count = 10;
   ckl_conf_t *conf = calloc(1, sizeof(ckl_conf_t));
 
   curl_global_init(CURL_GLOBAL_ALL);
-
-  while ((c = getopt(argc, argv, "hVslm:d:")) != -1) {
-    switch (c) {
-      case 'V':
-        show_version();
-        break;
-      case 'h':
-        show_help();
-        break;
-      case 's':
-        conf->script_mode = 1;
-        break;
-      case '?':
-        ckl_error_out("See -h for correct options");
-        break;
-    }
-  }
-
   rv = ckl_conf_init(conf);
 
   if (rv < 0) {
     ckl_error_out("conf_init failed");
   }
 
-  do_motd(conf, "n267d7a22c");
+  // TODO: try grabbing file path from an environment variable
+  char *node_id_file = "/usr/lib/cloudkick-agent/node_id";
+  FILE *fp = fopen(node_id_file, "r");
+  if (fp == NULL) {
+    ckl_error_out("couldn't open node_id file");
+  }
+  char node_id[128];
+  char *p = NULL;
+  p = fgets(node_id, sizeof(node_id), fp);
+
+  fclose(fp);
+
+  do_motd(conf, node_id);
 
   ckl_conf_free(conf);
 
