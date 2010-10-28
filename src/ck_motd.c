@@ -52,8 +52,11 @@ int main(int argc, char *const *argv)
     ckl_error_out("conf_init failed");
   }
 
-  // TODO: try grabbing file path from an environment variable
-  char *node_id_file = "/usr/lib/cloudkick-agent/node_id";
+  char *node_id_file = getenv("CK_NODE_ID_FILE");
+  if(node_id_file == NULL) {
+    node_id_file = "/usr/lib/cloudkick-agent/node_id";
+  }
+
   FILE *fp = fopen(node_id_file, "r");
   if (fp == NULL) {
     ckl_error_out("couldn't open node_id file");
