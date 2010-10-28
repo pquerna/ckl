@@ -30,6 +30,19 @@ sources = Split("""
 lenv.AppendUnique(LIBS=[extern['liboauth']])
 ckl = lenv.Program("ckl", source=sources)
 
-targets = [ckl]
+#TODO: don't repeat this
+sources = Split("""
+  ck_motd.c
+  script.c
+  transport.c
+  conf.c
+  editor.c
+  msg.c
+  util.c
+""")
+
+ck_motd = lenv.Program("ck_motd", source=sources)
+
+targets = [ckl, ck_motd]
 
 Return("targets")

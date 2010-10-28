@@ -90,6 +90,26 @@ static int list_to_post_data(ckl_transport_t *t,
   return 0;
 }
 
+static int motd_to_post_data(ckl_transport_t *t,
+                            ckl_conf_t *conf,
+                            const char* node_id)
+{
+  char buf[128];
+  snprintf(buf, sizeof(buf), "%s", node_id);
+  const char *hostname = ckl_hostname();
+
+  base_post_data(t, conf, hostname);
+
+  free((char*)hostname);
+  curl_formadd(&t->formpost,
+               &t->lastptr,
+               CURLFORM_COPYNAME, "node_id",
+               CURLFORM_COPYCONTENTS, buf,
+               CURLFORM_END);
+
+  return 0;
+}
+
 static int detail_to_post_data(ckl_transport_t *t,
                                ckl_conf_t *conf,
                                const char *slug)
@@ -247,6 +267,21 @@ int ckl_transport_list(ckl_transport_t *t,
   }
 
   t->append_url = "/list";
+
+  return ckl_transport_run(t, conf, NULL);
+}
+
+int ckl_transport_motd(ckl_transport_t *t,
+                       ckl_conf_t *conf,
+                       const char* node_id)
+{
+  int rv = motd_to_post_data(t, conf, node_id);
+
+  if (rv < 0) {
+    return rv;
+  }
+
+  t->append_url = "/motd";
 
   return ckl_transport_run(t, conf, NULL);
 }

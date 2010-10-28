@@ -4,6 +4,7 @@
 config.log
 *.a
 src/ckl
+src/ck_motd
 *~
 *.swp
 ._*
