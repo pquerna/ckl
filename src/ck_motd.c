@@ -42,19 +42,29 @@ static int do_motd(ckl_conf_t *conf, char* node_id)
 
 int main(int argc, char *const *argv)
 {
+  int c;
   int rv;
+  char *node_id_file = getenv("CK_NODE_ID_FILE");
   ckl_conf_t *conf = calloc(1, sizeof(ckl_conf_t));
 
   curl_global_init(CURL_GLOBAL_ALL);
+
+  if(node_id_file == NULL) {
+    node_id_file = "/usr/lib/cloudkick-agent/node_id";
+  }
+
+  while ((c = getopt(argc, argv, "f:")) != -1) {
+    switch (c) {
+      case 'f':
+        node_id_file = optarg;
+        break;
+    }
+  }
+
   rv = ckl_conf_init(conf);
 
   if (rv < 0) {
     ckl_error_out("conf_init failed");
-  }
-
-  char *node_id_file = getenv("CK_NODE_ID_FILE");
-  if(node_id_file == NULL) {
-    node_id_file = "/usr/lib/cloudkick-agent/node_id";
   }
 
   FILE *fp = fopen(node_id_file, "r");
