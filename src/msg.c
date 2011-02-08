@@ -16,6 +16,8 @@
  */
 
 #include "ckl.h"
+#include <sys/types.h>
+#include <pwd.h>
 
 int ckl_msg_init(ckl_msg_t *msg)
 {
@@ -27,7 +29,19 @@ int ckl_msg_init(ckl_msg_t *msg)
     }
 
     if (user == NULL) {
-      ckl_error_out("Unknown user: getlogin(2) and SUDO_USER both returned NULL.");
+      struct passwd *pws;
+      pws = getpwuid(getuid());
+      if (pws != NULL && pws->pw_name != NULL) {
+        user = pws->pw_name;
+      }
+    }
+
+    if (user == NULL) {
+      user = getenv("USER");
+    }
+
+    if (user == NULL) {
+      ckl_error_out("Unknown user: env['SUDO_USER'], getuid(2), getlogin(2), and env['USER'] all returned NULL.");
     }
 
     msg->username = strdup(user);
