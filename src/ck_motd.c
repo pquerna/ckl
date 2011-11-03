@@ -50,7 +50,7 @@ int main(int argc, char *const *argv)
   curl_global_init(CURL_GLOBAL_ALL);
 
   if(node_id_file == NULL) {
-    node_id_file = "/usr/lib/cloudkick-agent/node_id";
+    node_id_file = "/var/lib/cloudkick-agent/node_id";
   }
 
   while ((c = getopt(argc, argv, "f:")) != -1) {
