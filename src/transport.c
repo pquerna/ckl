@@ -144,7 +144,6 @@ static int ckl_transport_run(ckl_transport_t *t, ckl_conf_t *conf, ckl_msg_t* m)
   long httprc = -1;
   CURLcode res;
   char *url = strdup(conf->endpoint);
-  char *postarg = NULL;
 
   if (t->append_url) {
     free(url);
